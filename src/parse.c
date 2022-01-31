@@ -169,7 +169,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // !=
         token_expression,    // +
         token_expression,    // - (sub)
-        token_unimplemented, // Ans
+        token_expression,    // Ans
         token_unimplemented, // Fix
         token_unimplemented, // Horiz
         token_unimplemented, // Full
@@ -226,9 +226,9 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
         token_unimplemented, // 2-byte token
-        token_unimplemented, // rand
+        token_expression,    // rand
         token_expression,    // pi
-        token_unimplemented, // getKey
+        token_expression,    // getKey
         token_unimplemented, // '
         token_unimplemented, // ?
         token_expression,    // - (neg)

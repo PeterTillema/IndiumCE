@@ -288,6 +288,17 @@ static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     output_stack[output_stack_nr++] = var_node;
 }
 
+static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+
+    struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
+    if (func_node == NULL) parse_error("Memory error");
+
+    func_node->data.operand.func = token;
+
+    output_stack[output_stack_nr++] = func_node;
+}
+
 static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
@@ -418,7 +429,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_operator,      // !=
         token_operator,      // +
         token_operator,      // - (sub)
-        token_unimplemented, // Ans
+        token_empty_func,    // Ans
         token_unimplemented, // Fix
         token_unimplemented, // Horiz
         token_unimplemented, // Full
@@ -475,9 +486,9 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
         token_unimplemented, // 2-byte token
-        token_unimplemented, // rand
+        token_empty_func,    // rand
         token_pi,            // pi
-        token_unimplemented, // getKey
+        token_empty_func,    // getKey
         token_unimplemented, // '
         token_unimplemented, // ?
         token_number,        // - (neg)
