@@ -1,0 +1,14 @@
+# Normal output folders
+bin
+obj
+
+# GFX output folderse
+src/gfx/*.c
+src/gfx/*.h
+
+# CMake things
+cmake-build-debug
+CMakeLists.txt
+
+# Other things
+.idea
