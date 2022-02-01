@@ -1,6 +1,7 @@
 #include "parse.h"
 #include "ast.h"
 #include "expression.h"
+#include "routines.h"
 
 #include <fileioc.h>
 #include <string.h>
@@ -48,6 +49,23 @@ struct NODE *parse_full_program(ti_var_t slot, bool expect_end, bool expect_else
     }
 
     return root;
+}
+
+static struct NODE *standalone_func(ti_var_t slot, int token) {
+    int token2 = ti_GetC(slot);
+
+    if (token2 == tColon || token2 == tEnter) {
+        seek_prev(slot);
+    } else if (token2 != EOF) {
+        parse_error("Syntax error");
+    }
+
+    struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
+    if (func_node == NULL) parse_error("Memory error");
+
+    func_node->data.operand.func = token;
+
+    return func_node;
 }
 
 static struct NODE *token_unimplemented(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -148,7 +166,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // Z
         token_expression,    // theta
         token_unimplemented, // 2-byte token
-        token_unimplemented, // 2-byte token
+        token_expression,    // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // prgm
         token_unimplemented, // 2-byte token
@@ -171,41 +189,41 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // - (sub)
         token_expression,    // Ans
         token_unimplemented, // Fix
-        token_unimplemented, // Horiz
-        token_unimplemented, // Full
-        token_unimplemented, // Func
-        token_unimplemented, // Param
-        token_unimplemented, // Polar
-        token_unimplemented, // Seq
-        token_unimplemented, // IndpntAuto
-        token_unimplemented, // IndpntAsk
-        token_unimplemented, // DependAuto
-        token_unimplemented, // DependAsk
+        standalone_func,     // Horiz
+        standalone_func,     // Full
+        standalone_func,     // Func
+        standalone_func,     // Param
+        standalone_func,     // Polar
+        standalone_func,     // Seq
+        standalone_func,     // IndpntAuto
+        standalone_func,     // IndpntAsk
+        standalone_func,     // DependAuto
+        standalone_func,     // DependAsk
         token_unimplemented, // 2-byte token
         token_unimplemented, // square mark
         token_unimplemented, // plus mark
         token_unimplemented, // dot mark
         token_expression,    // *
         token_expression,    // /
-        token_unimplemented, // Trace
-        token_unimplemented, // ClrDraw
-        token_unimplemented, // ZStandard
-        token_unimplemented, // ZTrig
-        token_unimplemented, // ZBox
-        token_unimplemented, // Zoom In
-        token_unimplemented, // Zoom Out
-        token_unimplemented, // ZSquare
-        token_unimplemented, // ZInteger
-        token_unimplemented, // ZPrevious
-        token_unimplemented, // ZDecimal
-        token_unimplemented, // ZoomStat
-        token_unimplemented, // ZoomRcl
+        standalone_func,     // Trace
+        standalone_func,     // ClrDraw
+        standalone_func,     // ZStandard
+        standalone_func,     // ZTrig
+        standalone_func,     // ZBox
+        standalone_func,     // Zoom In
+        standalone_func,     // Zoom Out
+        standalone_func,     // ZSquare
+        standalone_func,     // ZInteger
+        standalone_func,     // ZPrevious
+        standalone_func,     // ZDecimal
+        standalone_func,     // ZoomStat
+        standalone_func,     // ZoomRcl
         token_unimplemented, // PrintScreen
-        token_unimplemented, // ZoomSto
+        standalone_func,     // ZoomSto
         token_unimplemented, // Text(
         token_expression,    // nPr
         token_expression,    // nCr
-        token_unimplemented, // FnOnn
+        token_unimplemented, // FnOn
         token_unimplemented, // FnOff
         token_unimplemented, // StorePic
         token_unimplemented, // RecallPic
@@ -268,23 +286,23 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Repeat
         token_unimplemented, // For(
         token_unimplemented, // End
-        token_unimplemented, // Return
+        standalone_func,     // Return
         token_unimplemented, // Lbl
         token_unimplemented, // Goto
         token_unimplemented, // Pause
-        token_unimplemented, // Stop
+        standalone_func,     // Stop
         token_unimplemented, // IS>(
         token_unimplemented, // DS<(
         token_unimplemented, // Input
         token_unimplemented, // Prompt
         token_unimplemented, // Disp
-        token_unimplemented, // DispGraph
+        standalone_func,     // DispGraph
         token_unimplemented, // Output(
-        token_unimplemented, // ClrHome
+        standalone_func,     // ClrHome
         token_unimplemented, // Fill(
         token_unimplemented, // SortA(
         token_unimplemented, // SortD(
-        token_unimplemented, // DispTable
+        standalone_func,     // DispTable
         token_unimplemented, // Menu(
         token_unimplemented, // Send(
         token_unimplemented, // Get(

@@ -204,10 +204,6 @@ static void token_function(ti_var_t slot, int token) {
 
     unsigned int func = token;
 
-    if (is_2_byte_token(token)) {
-        token += ti_GetC(slot) << 8;
-    }
-
     // Allocate space for the function
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     if (func_node == NULL) parse_error("Memory error");
@@ -242,6 +238,7 @@ static void token_number(ti_var_t slot, int token) {
     uint8_t tok = token;
 
     if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
 
     // Set some booleans
     if (tok == tee) {
@@ -322,6 +319,7 @@ static void token_number(ti_var_t slot, int token) {
 
 static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
 
     struct NODE *var_node = node_alloc(ET_VARIABLE);
     if (var_node == NULL) parse_error("Memory error");
@@ -331,8 +329,33 @@ static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     output_stack[output_stack_nr++] = var_node;
 }
 
+static void token_os_list(ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+
+    uint8_t list_nr = ti_GetC(slot);
+
+    // Check if it's a list element
+    token = ti_GetC(slot);
+    if (token == tLParen) {
+        need_mul_op = false;
+        token_function(slot, token + (list_nr << 8));
+    } else {
+        struct NODE *list_node = node_alloc(ET_LIST);
+        if (list_node == NULL) parse_error("Memory error");
+
+        list_node->data.operand.list_nr = list_nr;
+
+        output_stack[output_stack_nr++] = list_node;
+
+        need_mul_op = true;
+
+        if (token != EOF) seek_prev(slot);
+    }
+}
+
 static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
 
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     if (func_node == NULL) parse_error("Memory error");
@@ -344,6 +367,7 @@ static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
 
 static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
 
     struct NODE *pi_node = node_alloc(ET_NUM);
     if (pi_node == NULL) parse_error("Memory error");
@@ -451,7 +475,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_variable,      // Z
         token_variable,      // theta
         token_unimplemented, // 2-byte token
-        token_unimplemented, // 2-byte token
+        token_os_list,       // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // prgm
         token_unimplemented, // 2-byte token
