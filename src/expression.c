@@ -32,11 +32,14 @@ void parse_error(char *string) {
         node_free(op_stack[i]);
     }
 
+    // Print the error to the console
     console_print(string);
     console_newline();
 
     sprintf(buf, "Line %d column %d", parse_line, parse_col);
     console_print(buf);
+
+    // And exit the program
     force_exit();
 }
 
@@ -46,6 +49,7 @@ static void push_op(uint8_t precedence, int token) {
         struct NODE *prev = op_stack[op_stack_nr - 1];
         if (prev->data.type != ET_OPERATOR) break;
 
+        // Check if we need to move the previous operator to the output stack
         uint8_t prev_precedence = get_operator_precedence(prev->data.operand.op);
         if (prev_precedence > precedence || (prev_precedence == precedence && (token == tPower || token == tComma))) break;
 
@@ -70,6 +74,55 @@ static void push_op(uint8_t precedence, int token) {
     }
 }
 
+static void push_rparen(void) {
+    uint8_t arg_count = 1;
+
+    nested_funcs--;
+
+    // Search for the matching left parenthesis. Everything we encounter can only be a comma, which is used in a
+    // function. If any comma is found, it must be function, as (1, 2) is invalid.
+    for (unsigned int i = op_stack_nr; i-- > 0;) {
+        struct NODE *tmp = op_stack[i];
+
+        if (tmp->data.type == ET_FUNCTION_CALL) {
+            // The previous is either the real function, like sin or cos, or just a standalone parenthesis, in which
+            // case it can't have more than 1 argument. Just leave the output as it is. Also, there should be enough
+            // output arguments available, otherwise something went really wrong
+            if (i && arg_count <= output_stack_nr && op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen) {
+                struct NODE *func_node = op_stack[i - 1];
+                struct NODE *tree = func_node->child = output_stack[output_stack_nr - arg_count];
+
+                free(tmp);
+
+                // Set the arguments of the function
+                for (uint8_t j = 1; j < arg_count; j++) {
+                    tree->next = output_stack[output_stack_nr - arg_count + j];
+                    tree = tree->next;
+                }
+
+                output_stack_nr -= arg_count - 1;
+                op_stack_nr -= 2;
+
+                return;
+            } else if (arg_count == 1) {
+                // Free and pop the left parenthesis
+                free(op_stack[--op_stack_nr]);
+
+                return;
+            } else {
+                parse_error("Unexpected \")\"");
+            }
+        } else if (tmp->data.type == ET_OPERATOR && tmp->data.operand.op == tComma) {
+            arg_count++;
+            op_stack_nr--;
+
+            free(tmp);
+        } else {
+            parse_error("Unexpected \")\"");
+        }
+    }
+}
+
 struct NODE *token_expression(ti_var_t slot, int token) {
     return parse_expression_line(slot, token, false, false);
 }
@@ -84,23 +137,38 @@ struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma,
 
     while (token != EOF && token != tEnter && token != tColon) {
         if (token == tComma && stop_at_comma && !nested_funcs) break;
+        if (token == tRParen && stop_at_paren && !nested_funcs) break;
 
+        // Execute the token function
         parse_col++;
         (*functions[token])(slot, token);
 
+        // And get the new token
         token = ti_GetC(slot);
     }
 
-    // todo: move stack to output and return first entry
-    return NULL;
+    for (unsigned int i = op_stack_nr; i-- > 0;) {
+        if (i >= op_stack_nr) continue;
+
+        struct NODE *tmp = op_stack[i];
+
+        if (tmp->data.type == ET_OPERATOR) push_op(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
+        else if (tmp->data.type == ET_FUNCTION_CALL) push_rparen();
+    }
+
+    if (output_stack_nr != 1) parse_error("Weird expression");
+
+    return output_stack[0];
 }
 
 static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
     need_mul_op = false;
 
+    // Push the operator to the stack
     uint8_t op_precedence = get_operator_precedence(token);
     push_op(op_precedence, token);
 
+    // And allocate memory for the new operator
     struct NODE *op_node = node_alloc(ET_OPERATOR);
     if (op_node == NULL) parse_error("Memory error");
 
@@ -110,51 +178,12 @@ static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
 }
 
 static void token_rparen(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
-    uint8_t arg_count = 1;
-
     need_mul_op = true;
 
-    // Fake the token to be optimized in the assembly
-    push_op(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
-
-    // Search for the matching left parenthesis. Everything we encounter can only be a comma, which is used in a
-    // function. If any comma is found, it must be function, as (1, 2) is invalid.
-    for (unsigned int i = op_stack_nr; i-- > 0;) {
-        struct NODE *tmp = op_stack[i];
-
-        if (tmp->data.type == ET_FUNCTION_CALL && tmp->data.operand.func == tLParen) {
-            // The previous is either the real function, like sin or cos, or just a standalone parenthesis, in which
-            // case it can't have more than 1 argument. Just leave the output as it is. Also, there should be enough
-            // output arguments available, otherwise something went really wrong
-            if (i && arg_count <= output_stack_nr && op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen) {
-                struct NODE *func_node = op_stack[i - 1];
-
-                struct NODE *tree = func_node->child = output_stack[output_stack_nr - arg_count];
-                free(tmp);
-
-                for (uint8_t j = 1; j < arg_count; j++) {
-                    tree->next = output_stack[output_stack_nr - arg_count + j];
-                    tree = tree->next;
-                }
-
-                output_stack_nr -= arg_count - 1;
-
-                return;
-            } else if (arg_count == 1) {
-                // Free and pop the left parenthesis
-                free(op_stack[--op_stack_nr]);
-
-                return;
-            } else {
-                parse_error("Unexpected \")\"");
-            }
-        } else if (tmp->data.type == ET_OPERATOR && tmp->data.operand.op == tComma) {
-            arg_count++;
-            free(tmp);
-        } else {
-            parse_error("Unexpected \")\"");
-        }
-    }
+    // This forces all operators to be moved to the output stack
+    // After that, push the right parenthesis
+    push_op(MAX_PRECEDENCE + 1, token);
+    push_rparen();
 }
 
 static void token_function(ti_var_t slot, int token) {
@@ -167,6 +196,7 @@ static void token_function(ti_var_t slot, int token) {
         token += ti_GetC(slot) << 8;
     }
 
+    // Allocate space for the function
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     if (func_node == NULL) parse_error("Memory error");
 
@@ -176,6 +206,7 @@ static void token_function(ti_var_t slot, int token) {
     nested_funcs++;
 
     if (token != tLParen) {
+        // Eventually push an extra (
         struct NODE *paren_node = node_alloc(ET_FUNCTION_CALL);
         if (paren_node == NULL) {
             free(func_node);
@@ -200,6 +231,7 @@ static void token_number(ti_var_t slot, int token) {
 
     if (need_mul_op) token_operator(slot, tMul);
 
+    // Set some booleans
     if (tok == tee) {
         num = 1;
         exp_num = 1;
@@ -221,11 +253,7 @@ static void token_number(ti_var_t slot, int token) {
 
         if (!(tok == tee || tok == tDecPt || (tok >= t0 && tok <= t9))) {
             // It's used as a negation character, push the unary function and continue
-            struct NODE *unary_node = node_alloc(ET_OPERATOR);
-            if (unary_node == NULL) parse_error("Memory error");
-
-            unary_node->data.operand.op = tChs;
-            op_stack[op_stack_nr++] = unary_node;
+            token_operator(slot, tChs);
 
             return;
         }
@@ -236,6 +264,7 @@ static void token_number(ti_var_t slot, int token) {
     while ((token = ti_GetC(slot)) != EOF) {
         tok = token;
 
+        // Should be a valid num char
         if (!(tok == tee || tok == tDecPt || tok == tChs || (tok >= t0 && tok <= t9))) break;
 
         parse_col++;
@@ -265,10 +294,12 @@ static void token_number(ti_var_t slot, int token) {
 
     if (token != EOF) seek_prev(slot);
 
+    // Get the right number, based on the exponent and negative flag
     if (negative_exp) exp = -exp;
     if (in_exp) num = num * powf(10, (float) exp);
     if (negative_num) num = -num;
 
+    // And add it to the output stack
     struct NODE *num_node = node_alloc(ET_NUM);
     if (num_node == NULL) parse_error("Not enough memory");
 
