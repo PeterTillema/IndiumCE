@@ -8,7 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_PRECEDENCE (10)
+#define MAX_PRECEDENCE (11)
 
 uint8_t get_operator_precedence(uint8_t op);
 

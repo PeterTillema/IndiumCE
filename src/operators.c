@@ -19,6 +19,7 @@ static const char operators[] = {
         tEQ, tLT, tGT, tLE, tGE, tNE,
         tAnd,
         tOr, tXor,
+        tStore,
         tComma
 };
 static const uint8_t precedence[] = {
@@ -32,6 +33,7 @@ static const uint8_t precedence[] = {
         8, 8, 8, 8, 8, 8,
         9,
         10, 10,
+        11,
         255
 };
 

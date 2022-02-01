@@ -25,7 +25,7 @@ void console_newline(void) {
     col = 0;
 }
 
-void console_print(char *string) {
+void console_print(const char *string) {
     char c;
 
     gfx_SetTextXY(CONSOLE_X + col * 8, CONSOLE_Y + row * 8);

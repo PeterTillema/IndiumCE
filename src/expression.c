@@ -21,7 +21,7 @@ unsigned int parse_col = 0;
 
 static void (*functions[256])(ti_var_t slot, int token);
 
-void parse_error(char *string) {
+void parse_error(const char *string) {
     char buf[26];
 
     // Free the stacks
@@ -55,13 +55,13 @@ static void push_op(uint8_t precedence, int token) {
 
         // Check for unary operator and set the args of the operator
         if (is_unary_op(prev_precedence)) {
-            if (!output_stack_nr) parse_error("Syntax error 1");
+            if (!output_stack_nr) parse_error("Syntax error");
 
             prev->child = output_stack[output_stack_nr - 1];
 
             output_stack[output_stack_nr - 1] = prev;
         } else {
-            if (output_stack_nr < 2) parse_error("Syntax error 2");
+            if (output_stack_nr < 2) parse_error("Syntax error");
 
             prev->child = output_stack[output_stack_nr - 2];
             prev->child->next = output_stack[output_stack_nr - 1];
@@ -123,6 +123,19 @@ static void push_rparen(void) {
     }
 }
 
+static void empty_op_stack(void) {
+    for (unsigned int i = op_stack_nr; i-- > 0;) {
+        if (i >= op_stack_nr) continue;
+
+        struct NODE *tmp = op_stack[i];
+
+        if (tmp->data.type == ET_OPERATOR) push_op(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
+        else if (tmp->data.type == ET_FUNCTION_CALL) push_rparen();
+    }
+
+    if (output_stack_nr != 1) parse_error("Invalid expression");
+}
+
 struct NODE *token_expression(ti_var_t slot, int token) {
     return parse_expression_line(slot, token, false, false);
 }
@@ -147,22 +160,21 @@ struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma,
         token = ti_GetC(slot);
     }
 
-    for (unsigned int i = op_stack_nr; i-- > 0;) {
-        if (i >= op_stack_nr) continue;
-
-        struct NODE *tmp = op_stack[i];
-
-        if (tmp->data.type == ET_OPERATOR) push_op(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
-        else if (tmp->data.type == ET_FUNCTION_CALL) push_rparen();
-    }
-
-    if (output_stack_nr != 1) parse_error("Weird expression");
+    empty_op_stack();
 
     return output_stack[0];
 }
 
 static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
     need_mul_op = false;
+
+    if (token == tStore) {
+        // Multiple stores are not implemented
+        if (op_stack_nr && op_stack[0]->data.type == ET_OPERATOR && op_stack[0]->data.operand.op == tStore)
+            parse_error("Syntax error");
+
+        empty_op_stack();
+    }
 
     // Push the operator to the stack
     uint8_t op_precedence = get_operator_precedence(token);
@@ -270,15 +282,15 @@ static void token_number(ti_var_t slot, int token) {
         parse_col++;
 
         if (tok == tee) {
-            if (in_exp) parse_error("Syntax error 4");
+            if (in_exp) parse_error("Syntax error");
 
             in_exp = true;
         } else if (tok == tDecPt) {
-            if (frac_num || in_exp) parse_error("Syntax error 5");
+            if (frac_num || in_exp) parse_error("Syntax error");
 
             frac_num = -1;
         } else if (tok == tChs) {
-            if (!in_exp || exp_num != 1) parse_error("Syntax error 6");
+            if (!in_exp || exp_num != 1) parse_error("Syntax error");
 
             negative_exp = true;
         } else if (in_exp) {
@@ -350,7 +362,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // ►DMS
         token_unimplemented, // ►Dec
         token_unimplemented, // ►Frac
-        token_unimplemented, // →
+        token_operator,      // →
         token_unimplemented, // Boxplot
         token_unimplemented, // [
         token_unimplemented, // ]

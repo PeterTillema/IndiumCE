@@ -14,7 +14,7 @@ void console_clear(void);
 
 void console_newline(void);
 
-void console_print(char *string);
+void console_print(const char *string);
 
 void console_print_int(unsigned int num);
 

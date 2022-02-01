@@ -11,7 +11,7 @@ extern "C" {
 extern unsigned int parse_line;
 extern unsigned int parse_col;
 
-void parse_error(char *string) __attribute__((noreturn));
+void parse_error(const char *string) __attribute__((noreturn));
 
 struct NODE *token_expression(ti_var_t slot, int token);
 
