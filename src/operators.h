@@ -14,6 +14,8 @@ uint8_t get_operator_precedence(uint8_t op);
 
 bool is_unary_op(uint8_t prec);
 
+const char *get_op_string(uint8_t op);
+
 #ifdef __cplusplus
 }
 #endif

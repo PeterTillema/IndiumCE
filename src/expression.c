@@ -5,6 +5,7 @@
 #include "operators.h"
 #include "routines.h"
 
+#include <debug.h>
 #include <fileioc.h>
 #include <math.h>
 #include <string.h>
@@ -24,14 +25,6 @@ static void (*functions[256])(ti_var_t slot, int token);
 void parse_error(const char *string) {
     char buf[26];
 
-    // Free the stacks
-    for (unsigned int i = 0; i < output_stack_nr; i++) {
-        node_free(output_stack[i]);
-    }
-    for (unsigned int i = 0; i < op_stack_nr; i++) {
-        node_free(op_stack[i]);
-    }
-
     // Print the error to the console
     console_print(string);
     console_newline();
@@ -41,6 +34,33 @@ void parse_error(const char *string) {
 
     // And exit the program
     force_exit();
+}
+
+static void print_node(struct NODE *tree, uint8_t depth) {
+    while (tree != NULL) {
+        for (uint8_t i = 0; i < depth; i++) dbg_sprintf(dbgout, "  ");
+
+        switch (tree->data.type) {
+            case ET_NUM:
+                dbg_sprintf(dbgout, "Number: %f\n", tree->data.operand.num);
+                break;
+            case ET_VARIABLE:
+                dbg_sprintf(dbgout, "Variable: %c\n", tree->data.operand.variable_nr + 'A');
+                break;
+            case ET_OPERATOR:
+                dbg_sprintf(dbgout, "Operator: %s\n", get_op_string(tree->data.operand.op));
+                break;
+            case ET_FUNCTION_CALL:
+                dbg_sprintf(dbgout, "Function: %d\n", tree->data.operand.func);
+                break;
+            default:
+                break;
+        }
+
+        print_node(tree->child, depth + 1);
+
+        tree = tree->next;
+    }
 }
 
 static void push_op(uint8_t precedence, int token) {
@@ -74,21 +94,21 @@ static void push_op(uint8_t precedence, int token) {
     }
 }
 
-static void push_rparen(void) {
+static void push_rparen(uint8_t tok) {
     uint8_t arg_count = 1;
 
     nested_funcs--;
 
-    // Search for the matching left parenthesis. Everything we encounter can only be a comma, which is used in a
+    // Search for the matching left parenthesis/bracket. Everything we encounter can only be a comma, which is used in a
     // function. If any comma is found, it must be function, as (1, 2) is invalid.
     for (unsigned int i = op_stack_nr; i-- > 0;) {
         struct NODE *tmp = op_stack[i];
 
-        if (tmp->data.type == ET_FUNCTION_CALL) {
+        if (tmp->data.type == ET_FUNCTION_CALL && tmp->data.operand.func == tok) {
             // The previous is either the real function, like sin or cos, or just a standalone parenthesis, in which
             // case it can't have more than 1 argument. Just leave the output as it is. Also, there should be enough
             // output arguments available, otherwise something went really wrong
-            if (i && arg_count <= output_stack_nr && op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen) {
+            if (i && arg_count <= output_stack_nr && (tok == tLBrace || (op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen))) {
                 struct NODE *func_node = op_stack[i - 1];
                 struct NODE *tree = func_node->child = output_stack[output_stack_nr - arg_count];
 
@@ -100,8 +120,11 @@ static void push_rparen(void) {
                     tree = tree->next;
                 }
 
-                output_stack_nr -= arg_count - 1;
+                output_stack_nr -= arg_count;
                 op_stack_nr -= 2;
+
+                // Insert the function in the output queue
+                output_stack[output_stack_nr++] = func_node;
 
                 return;
             } else if (arg_count == 1) {
@@ -130,7 +153,7 @@ static void empty_op_stack(void) {
         struct NODE *tmp = op_stack[i];
 
         if (tmp->data.type == ET_OPERATOR) push_op(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
-        else if (tmp->data.type == ET_FUNCTION_CALL) push_rparen();
+        else if (tmp->data.type == ET_FUNCTION_CALL) push_rparen(tLParen);
     }
 
     if (output_stack_nr != 1) parse_error("Invalid expression");
@@ -162,6 +185,8 @@ struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma,
 
     empty_op_stack();
 
+    print_node(output_stack[0], 0);
+
     return output_stack[0];
 }
 
@@ -182,11 +207,27 @@ static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
 
     // And allocate memory for the new operator
     struct NODE *op_node = node_alloc(ET_OPERATOR);
-    if (op_node == NULL) parse_error("Memory error");
-
     op_node->data.operand.op = token;
 
     op_stack[op_stack_nr++] = op_node;
+}
+
+static void token_lbrace(__attribute__((unused)) ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+
+    // Allocate space for the function
+    struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
+    func_node->data.operand.func = token;
+
+    op_stack[op_stack_nr++] = func_node;
+    nested_funcs++;
+}
+
+static void token_rbrace(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
+    need_mul_op = true;
+
+    push_op(MAX_PRECEDENCE + 1, token);
+    push_rparen(tLBrace);
 }
 
 static void token_rparen(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -195,19 +236,16 @@ static void token_rparen(__attribute__((unused)) ti_var_t slot, __attribute__((u
     // This forces all operators to be moved to the output stack
     // After that, push the right parenthesis
     push_op(MAX_PRECEDENCE + 1, token);
-    push_rparen();
+    push_rparen(tLParen);
 }
 
 static void token_function(ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
-    need_mul_op = false;
 
     unsigned int func = token;
 
     // Allocate space for the function
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
-    if (func_node == NULL) parse_error("Memory error");
-
     func_node->data.operand.func = func;
 
     op_stack[op_stack_nr++] = func_node;
@@ -216,11 +254,6 @@ static void token_function(ti_var_t slot, int token) {
     if (token != tLParen) {
         // Eventually push an extra (
         struct NODE *paren_node = node_alloc(ET_FUNCTION_CALL);
-        if (paren_node == NULL) {
-            free(func_node);
-            parse_error("Memory error");
-        }
-
         paren_node->data.operand.func = tLParen;
 
         op_stack[op_stack_nr++] = paren_node;
@@ -310,8 +343,6 @@ static void token_number(ti_var_t slot, int token) {
 
     // And add it to the output stack
     struct NODE *num_node = node_alloc(ET_NUM);
-    if (num_node == NULL) parse_error("Not enough memory");
-
     num_node->data.operand.num = num;
 
     output_stack[output_stack_nr++] = num_node;
@@ -322,8 +353,6 @@ static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     need_mul_op = true;
 
     struct NODE *var_node = node_alloc(ET_VARIABLE);
-    if (var_node == NULL) parse_error("Memory error");
-
     var_node->data.operand.variable_nr = token - tA;
 
     output_stack[output_stack_nr++] = var_node;
@@ -341,8 +370,6 @@ static void token_os_list(ti_var_t slot, int token) {
         token_function(slot, token + (list_nr << 8));
     } else {
         struct NODE *list_node = node_alloc(ET_LIST);
-        if (list_node == NULL) parse_error("Memory error");
-
         list_node->data.operand.list_nr = list_nr;
 
         output_stack[output_stack_nr++] = list_node;
@@ -358,8 +385,6 @@ static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
     need_mul_op = true;
 
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
-    if (func_node == NULL) parse_error("Memory error");
-
     func_node->data.operand.func = token;
 
     output_stack[output_stack_nr++] = func_node;
@@ -370,8 +395,6 @@ static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unuse
     need_mul_op = true;
 
     struct NODE *pi_node = node_alloc(ET_NUM);
-    if (pi_node == NULL) parse_error("Memory error");
-
     pi_node->data.operand.num = M_PI;
 
     output_stack[output_stack_nr++] = pi_node;
@@ -390,8 +413,8 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Boxplot
         token_unimplemented, // [
         token_unimplemented, // ]
-        token_unimplemented, // {
-        token_unimplemented, // }
+        token_lbrace,        // {
+        token_rbrace,        // }
         token_operator,      // r
         token_operator,      // °
         token_operator,      // ֿ¹

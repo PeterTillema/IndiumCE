@@ -61,8 +61,6 @@ static struct NODE *standalone_func(ti_var_t slot, int token) {
     }
 
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
-    if (func_node == NULL) parse_error("Memory error");
-
     func_node->data.operand.func = token;
 
     return func_node;
@@ -81,8 +79,8 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Boxplot
         token_unimplemented, // [
         token_unimplemented, // ]
-        token_unimplemented, // {
-        token_unimplemented, // }
+        token_expression,    // {
+        token_expression,    // }
         token_expression,    // r
         token_expression,    // °
         token_expression,    // ֿ¹
@@ -173,9 +171,9 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token
-        token_unimplemented, // Radian
-        token_unimplemented, // Degree
-        token_unimplemented, // Normal
+        standalone_func,    // Radian
+        standalone_func,    // Degree
+        standalone_func,    // Normal
         token_unimplemented, // Sci
         token_unimplemented, // Eng
         token_unimplemented, // Float

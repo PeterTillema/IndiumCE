@@ -22,6 +22,20 @@ static const char operators[] = {
         tStore,
         tComma
 };
+const char *operator_chars[] = {
+        "^^r", "^^o", "^^-1", "^^2", "^^T", "^^3",
+        "^",
+        "!",
+        "~",
+        "nPr", "nCr",
+        "*", "/",
+        "+", "-",
+        "==", "<", ">", "<=", "GE", "!=",
+        "and",
+        "or", "xor",
+        "->",
+        ","
+};
 static const uint8_t precedence[] = {
         1, 1, 1, 1, 1, 1,
         2,
@@ -45,4 +59,10 @@ uint8_t get_operator_precedence(uint8_t op) {
 
 bool is_unary_op(uint8_t prec) {
     return prec <= 4 && prec != 2;
+}
+
+const char *get_op_string(uint8_t op) {
+    char *index = memchr(operators, op, sizeof(operators));
+
+    return operator_chars[index - operators];
 }

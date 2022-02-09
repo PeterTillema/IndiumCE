@@ -160,6 +160,9 @@ int main(void) {
     // First parse the program
     parse_full_program(input_slot, false, false);
 
+    // Get all the variables
+    get_all_os_variables();
+
     gfx_End();
 
     return 0;
