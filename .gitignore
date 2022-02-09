@@ -6,9 +6,5 @@ obj
 src/gfx/*.c
 src/gfx/*.h
 
-# CMake things
-cmake-build-debug
-CMakeLists.txt
-
 # Other things
 .idea
