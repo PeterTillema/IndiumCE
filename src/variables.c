@@ -1,14 +1,14 @@
 #include "variables.h"
-#include "ast.h"
 
 #include <debug.h>
 #include <fileioc.h>
 #include <stdint.h>
 #include <tice.h>
+#include <string.h>
 
 struct var_real variables[26];
 __attribute__((unused)) struct var_string strings[10];
-__attribute__((unused)) struct var_list lists[6];
+struct var_list lists[6];
 __attribute__((unused)) struct var_matrix matrices[10];
 __attribute__((unused)) struct var_custom_list custom_lists[50];
 
@@ -83,6 +83,47 @@ static void handle_list_cplx(const char *var_name, void *data) {
     lists[index].data = list_data;
 }
 
+static void handle_matrix(const char *var_name, void *data) {
+    matrix_t *matrix = (matrix_t *)data;
+
+    dbg_sprintf(dbgout, "Found matrix %d with %d rows and %d cols\n", var_name[1], matrix->rows, matrix->cols);
+
+    if (!matrix->rows || !matrix->cols) return;
+
+    float *matrix_data = (float *)malloc(matrix->rows * matrix->cols * sizeof(float));
+    if (!matrix_data) return;
+
+    unsigned index = 0;
+    for (uint8_t row = 0; row < matrix->rows; row++) {
+        for (uint8_t col = 0; col < matrix->cols; col++) {
+            matrix_data[index] = os_RealToFloat(&matrix->items[index]);
+            index++;
+        }
+    }
+
+    index = (unsigned int)var_name[1];
+    matrices[index].rows = matrix->rows;
+    matrices[index].cols = matrix->cols;
+    matrices[index].data = matrix_data;
+}
+
+static void handle_string(const char *var_name, void *data) {
+    string_t *string = (string_t *)data;
+
+    dbg_sprintf(dbgout, "Found string %d with size %d\n", var_name[1], string->len);
+
+    if (!string->len) return;
+
+    char *string_data = (char *)malloc(string->len);
+    if (!string_data) return;
+
+    memcpy(string_data, string->data, string->len);
+
+    unsigned int index = (unsigned int)var_name[1];
+    strings[index].length = string->len;
+    strings[index].data = string_data;
+}
+
 static void handle_unimplemented(__attribute__((unused)) const char *var_name, __attribute__((unused)) void *data) {}
 
 void get_all_os_variables(void) {
@@ -112,9 +153,9 @@ void get_all_os_variables(void) {
 static void (*handlers[256])(const char *, void *) = {
         handle_real,            // TI_REAL_TYPE,
         handle_list,            // TI_REAL_LIST_TYPE
-        handle_unimplemented,   // TI_MATRIX_TYPE
+        handle_matrix,          // TI_MATRIX_TYPE
         handle_unimplemented,   // TI_EQU_TYPE
-        handle_unimplemented,   // TI_STRING_TYPE
+        handle_string,          // TI_STRING_TYPE
         handle_unimplemented,   // TI_PRGM_TYPE
         handle_unimplemented,   // TI_PPRGM_TYPE
         handle_unimplemented,   // TI_REAL_LIST_TYPE
