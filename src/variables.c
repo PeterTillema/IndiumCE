@@ -1,4 +1,5 @@
 #include "variables.h"
+#include "expression.h"
 
 #include <debug.h>
 #include <fileioc.h>
@@ -6,11 +7,13 @@
 #include <tice.h>
 #include <string.h>
 
-struct var_real variables[26];
-__attribute__((unused)) struct var_string strings[10];
+struct var_real variables[26] = {0};
+struct var_string strings[10];
 struct var_list lists[6];
-__attribute__((unused)) struct var_matrix matrices[10];
-__attribute__((unused)) struct var_custom_list custom_lists[50];
+struct var_matrix matrices[10];
+struct var_custom_list custom_lists[50];
+
+static uint8_t custom_list_index = 0;
 
 static void (*handlers[256])(const char *, void *);
 
@@ -21,8 +24,6 @@ static void handle_real(const char *var_name, void *data) {
         unsigned int index = var_name[0] - 'A';
         variables[index].complex = false;
         variables[index].real = real;
-
-        dbg_sprintf(dbgout, "Found real %s: %f\n", var_name, real);
     }
 }
 
@@ -35,15 +36,11 @@ static void handle_cplx(const char *var_name, void *data) {
         variables[index].complex = true;
         variables[index].real = real;
         variables[index].imag = imag;
-
-        dbg_sprintf(dbgout, "Found complex %s: %f + %fi\n", var_name, real, imag);
     }
 }
 
 static void handle_list(const char *var_name, void *data) {
     list_t *list = (list_t *)data;
-
-    dbg_sprintf(dbgout, "Found list %d with %d elements\n", var_name[1], list->dim);
 
     if (!list->dim) return;
 
@@ -52,19 +49,27 @@ static void handle_list(const char *var_name, void *data) {
 
     for (unsigned int i = 0; i < list->dim; i++) {
         list_data[i] = os_RealToFloat(&list->items[i]);
-        dbg_sprintf(dbgout, " -- %f\n", list_data[i]);
     }
 
-    unsigned int index = (unsigned int)var_name[1];
-    lists[index].complex = false;
-    lists[index].size = list->dim;
-    lists[index].data = list_data;
+    if (var_name[1] >= 'A') {
+        // Custom list
+        if (custom_list_index == 50) parse_error("Too much lists");
+        memcpy(custom_lists[custom_list_index].name, var_name + 1, 5);
+        custom_lists[custom_list_index].var_list.complex = false;
+        custom_lists[custom_list_index].var_list.size = list->dim;
+        custom_lists[custom_list_index].var_list.data = list_data;
+        custom_list_index++;
+    } else {
+        // OS list
+        unsigned int index = (unsigned int)var_name[1];
+        lists[index].complex = false;
+        lists[index].size = list->dim;
+        lists[index].data = list_data;
+    }
 }
 
 static void handle_list_cplx(const char *var_name, void *data) {
     cplx_list_t *list = (cplx_list_t *)data;
-
-    dbg_sprintf(dbgout, "Found list %d with %d elements\n", var_name[1], list->dim);
 
     if (!list->dim) return;
 
@@ -74,19 +79,27 @@ static void handle_list_cplx(const char *var_name, void *data) {
     for (unsigned int i = 0; i < list->dim; i++) {
         list_data[i * 2] = os_RealToFloat(&list->items[i].real);
         list_data[i * 2 + 1] = os_RealToFloat(&list->items[i].imag);
-        dbg_sprintf(dbgout, " -- %f + %fi\n", list_data[i * 2], list_data[i * 2 + 1]);
     }
 
-    unsigned int index = (unsigned int)var_name[1];
-    lists[index].complex = true;
-    lists[index].size = list->dim;
-    lists[index].data = list_data;
+    if (var_name[1] >= 'A') {
+        // Custom list
+        if (custom_list_index == 50) parse_error("Too much lists");
+        memcpy(custom_lists[custom_list_index].name, var_name + 1, 5);
+        custom_lists[custom_list_index].var_list.complex = false;
+        custom_lists[custom_list_index].var_list.size = list->dim;
+        custom_lists[custom_list_index].var_list.data = list_data;
+        custom_list_index++;
+    } else {
+        // OS list
+        unsigned int index = (unsigned int)var_name[1];
+        lists[index].complex = false;
+        lists[index].size = list->dim;
+        lists[index].data = list_data;
+    }
 }
 
 static void handle_matrix(const char *var_name, void *data) {
     matrix_t *matrix = (matrix_t *)data;
-
-    dbg_sprintf(dbgout, "Found matrix %d with %d rows and %d cols\n", var_name[1], matrix->rows, matrix->cols);
 
     if (!matrix->rows || !matrix->cols) return;
 
@@ -109,8 +122,6 @@ static void handle_matrix(const char *var_name, void *data) {
 
 static void handle_string(const char *var_name, void *data) {
     string_t *string = (string_t *)data;
-
-    dbg_sprintf(dbgout, "Found string %d with size %d\n", var_name[1], string->len);
 
     if (!string->len) return;
 
