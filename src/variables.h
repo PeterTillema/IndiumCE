@@ -40,9 +40,13 @@ struct var_string {
 
 extern struct var_real variables[26];
 extern struct var_string strings[10];
+extern struct var_string temp_strings[10];
+extern struct var_string equations[10];
 extern struct var_list lists[6];
-extern struct var_matrix matrices[10];
+extern struct var_list temp_lists[10];
 extern struct var_custom_list custom_lists[50];
+extern struct var_matrix matrices[10];
+extern struct var_matrix temp_matrices[2];
 
 void get_all_os_variables(void);
 

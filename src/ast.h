@@ -27,14 +27,16 @@ union operand_t {
     struct {
         float real;
         float imag;
-    } cplx;
+    } *cplx_ptr;
     uint8_t variable_nr;
     uint8_t string_nr;
-    uint8_t *temp_string_ptr;
+    uint8_t temp_string_nr;
+    uint8_t equation_nr;
     uint8_t list_nr;
-    uint8_t *temp_list_ptr;
-    uint8_t *custom_list_nr;
+    uint8_t temp_list_nr;
+    uint8_t custom_list_nr;
     uint8_t matrix_nr;
+    uint8_t temp_matrix_nr;
     uint8_t op;
     unsigned int func;
     unsigned int command;

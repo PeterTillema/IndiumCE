@@ -1,21 +1,24 @@
 #include "variables.h"
 #include "expression.h"
 
-#include <debug.h>
 #include <fileioc.h>
 #include <stdint.h>
 #include <tice.h>
 #include <string.h>
 
 struct var_real variables[26] = {0};
-struct var_string strings[10];
-struct var_list lists[6];
-struct var_matrix matrices[10];
-struct var_custom_list custom_lists[50];
+struct var_string strings[10] = {0};
+struct var_string temp_strings[10] = {0};
+struct var_string equations[10] = {0};
+struct var_list lists[6] = {0};
+struct var_list temp_lists[10] = {0};
+struct var_custom_list custom_lists[50] = {0};
+struct var_matrix matrices[10] = {0};
+struct var_matrix temp_matrices[2] = {0};
 
 static uint8_t custom_list_index = 0;
 
-static void (*handlers[256])(const char *, void *);
+static void (*handlers[14])(const char *, void *);
 
 static void handle_real(const char *var_name, void *data) {
     if (var_name[0] >= tA && var_name[0] <= tTheta) {
@@ -135,6 +138,21 @@ static void handle_string(const char *var_name, void *data) {
     strings[index].data = string_data;
 }
 
+static void handle_equation(const char *var_name, void *data) {
+    equ_t *equation = (equ_t *)data;
+
+    if (!equation->len) return;
+
+    char *equation_data = (char *)malloc(equation->len);
+    if (!equation_data) return;
+
+    memcpy(equation_data, equation->data, equation->len);
+
+    unsigned int index = (unsigned int)var_name[1];
+    equations[index].length = equation->len;
+    equations[index].data = equation_data;
+}
+
 static void handle_unimplemented(__attribute__((unused)) const char *var_name, __attribute__((unused)) void *data) {}
 
 void get_all_os_variables(void) {
@@ -155,25 +173,25 @@ void get_all_os_variables(void) {
         if (var_name[0] == tAns) continue;
 
         // Get a valid handler
-        if (var_type >13) continue;
+        if (var_type >= sizeof(handlers) / sizeof(handlers[0])) continue;
 
         handlers[var_type](var_name, data);
     }
 }
 
-static void (*handlers[256])(const char *, void *) = {
-        handle_real,            // TI_REAL_TYPE,
-        handle_list,            // TI_REAL_LIST_TYPE
-        handle_matrix,          // TI_MATRIX_TYPE
-        handle_unimplemented,   // TI_EQU_TYPE
-        handle_string,          // TI_STRING_TYPE
-        handle_unimplemented,   // TI_PRGM_TYPE
-        handle_unimplemented,   // TI_PPRGM_TYPE
-        handle_unimplemented,   // TI_REAL_LIST_TYPE
-        handle_unimplemented,   // TI_REAL_LIST_TYPE
-        handle_unimplemented,   // TI_REAL_LIST_TYPE
-        handle_unimplemented,   // TI_REAL_LIST_TYPE
-        handle_unimplemented,   // TI_REAL_LIST_TYPE
-        handle_cplx,            // TI_CPLX_TYPE
-        handle_list_cplx,       // TI_CPLX_LIST_TYPE
+static void (*handlers[14])(const char *, void *) = {
+        handle_real,            // Real
+        handle_list,            // Real List
+        handle_matrix,          // Matrix
+        handle_equation,        // Equation
+        handle_string,          // String
+        handle_unimplemented,   // Program
+        handle_unimplemented,   // Protected Program
+        handle_unimplemented,   // Picture
+        handle_unimplemented,   // GDB
+        handle_unimplemented,   // Unknown
+        handle_unimplemented,   // Unknown Equation
+        handle_unimplemented,   // New Equation
+        handle_cplx,            // Complex
+        handle_list_cplx,       // Complex List
 };
