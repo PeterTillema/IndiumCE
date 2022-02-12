@@ -9,7 +9,7 @@
 struct var_real variables[26] = {0};
 struct var_string strings[10] = {0};
 struct var_string temp_strings[10] = {0};
-struct var_string equations[10] = {0};
+struct var_string equations[29] = {0};
 struct var_list lists[6] = {0};
 struct var_list temp_lists[10] = {0};
 struct var_custom_list custom_lists[50] = {0};

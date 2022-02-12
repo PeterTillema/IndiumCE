@@ -22,12 +22,14 @@ enum etype {
     ET_COMMAND          // an expression, whereas a command should be the first token on a line.
 };
 
+struct cplx_t {
+    float real;
+    float imag;
+};
+
 union operand_t {
     float num;
-    struct {
-        float real;
-        float imag;
-    } *cplx_ptr;
+    struct cplx_t *cplx_ptr;
     uint8_t variable_nr;
     uint8_t string_nr;
     uint8_t temp_string_nr;

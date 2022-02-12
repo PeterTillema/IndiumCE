@@ -265,6 +265,7 @@ static void token_number(ti_var_t slot, int token) {
     bool in_exp = false;
     bool negative_num = false;
     bool negative_exp = false;
+    bool is_complex = false;
     int exp = 0;
     int frac_num = 0;
     uint8_t exp_num = 0;
@@ -307,7 +308,7 @@ static void token_number(ti_var_t slot, int token) {
         tok = token;
 
         // Should be a valid num char
-        if (!(tok == tee || tok == tDecPt || tok == tChs || (tok >= t0 && tok <= t9))) break;
+        if (!(tok == tee || tok == tDecPt || tok == tii || tok == tChs || (tok >= t0 && tok <= t9))) break;
 
         parse_col++;
 
@@ -319,6 +320,10 @@ static void token_number(ti_var_t slot, int token) {
             if (frac_num || in_exp) parse_error("Syntax error");
 
             frac_num = -1;
+        } else if (tok == tii) {
+            is_complex = true;
+
+            break;
         } else if (tok == tChs) {
             if (!in_exp || exp_num != 1) parse_error("Syntax error");
 
@@ -334,7 +339,7 @@ static void token_number(ti_var_t slot, int token) {
         }
     }
 
-    if (token != EOF) seek_prev(slot);
+    if (token != EOF && token != tii) seek_prev(slot);
 
     // Get the right number, based on the exponent and negative flag
     if (negative_exp) exp = -exp;
@@ -342,10 +347,23 @@ static void token_number(ti_var_t slot, int token) {
     if (negative_num) num = -num;
 
     // And add it to the output stack
-    struct NODE *num_node = node_alloc(ET_NUM);
-    num_node->data.operand.num = num;
+    if (is_complex) {
+        struct cplx_t *cplx = malloc(sizeof(struct cplx_t));
+        if (cplx == NULL) parse_error("Memory error");
 
-    output_stack[output_stack_nr++] = num_node;
+        cplx->real = 0;
+        cplx->imag = num;
+
+        struct NODE *cplx_node = node_alloc(ET_COMPLEX);
+        cplx_node->data.operand.cplx_ptr = cplx;
+
+        output_stack[output_stack_nr++] = cplx_node;
+    } else {
+        struct NODE *num_node = node_alloc(ET_NUM);
+        num_node->data.operand.num = num;
+
+        output_stack[output_stack_nr++] = num_node;
+    }
 }
 
 static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
@@ -378,6 +396,30 @@ static void token_os_list(ti_var_t slot, int token) {
 
         if (token != EOF) seek_prev(slot);
     }
+}
+
+static void token_os_matrix(ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
+
+    uint8_t matrix_nr = ti_GetC(slot);
+
+    struct NODE *matrix_node = node_alloc(ET_MATRIX);
+    matrix_node->data.operand.matrix_nr = matrix_nr;
+
+    output_stack[output_stack_nr++] = matrix_node;
+}
+
+static void token_os_string(ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
+
+    uint8_t str_nr = ti_GetC(slot);
+
+    struct NODE *str_node = node_alloc(ET_STRING);
+    str_node->data.operand.string_nr = str_nr;
+
+    output_stack[output_stack_nr++] = str_node;
 }
 
 static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
@@ -449,7 +491,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, //
         token_unimplemented, // "
         token_operator,      // ,
-        token_unimplemented, // i
+        token_empty_func,    // i
         token_unimplemented, // !
         token_unimplemented, // CubicReg
         token_unimplemented, // QuartReg
@@ -497,7 +539,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_variable,      // Y
         token_variable,      // Z
         token_variable,      // theta
-        token_unimplemented, // 2-byte token
+        token_os_matrix,     // 2-byte token
         token_os_list,       // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // prgm
@@ -575,8 +617,8 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Tangent(
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
-        token_unimplemented, // 2-byte token
-        token_empty_func,    // rand
+        token_os_string,     // 2-byte token
+        token_unimplemented, // rand
         token_pi,            // pi
         token_empty_func,    // getKey
         token_unimplemented, // '

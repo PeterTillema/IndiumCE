@@ -115,7 +115,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, //
         token_unimplemented, // "
         token_unimplemented, // ,
-        token_unimplemented, // i
+        token_expression,    // i
         token_expression,    // !
         token_unimplemented, // CubicReg
         token_unimplemented, // QuartReg
@@ -163,7 +163,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // Y
         token_expression,    // Z
         token_expression,    // theta
-        token_unimplemented, // 2-byte token
+        token_expression,    // 2-byte token
         token_expression,    // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // prgm
@@ -241,7 +241,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Tangent(
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
-        token_unimplemented, // 2-byte token
+        token_expression,    // 2-byte token
         token_expression,    // rand
         token_expression,    // pi
         token_expression,    // getKey

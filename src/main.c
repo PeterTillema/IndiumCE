@@ -5,6 +5,7 @@
 
 #include <fileioc.h>
 #include <graphx.h>
+#include <keypadc.h>
 #include <string.h>
 
 static char *input_programs[MAX_NR_PROGRAMS];
@@ -145,6 +146,9 @@ int main(void) {
     gfx_FillRectangle_NoClip(123, 20, 74, 210);
     gfx_SetColor(255);
     console_clear();
+
+    // Setup keypad
+    kb_SetMode(MODE_3_CONTINUOUS);
 
     // Open the file for reading, either a program or a protected program
     ti_var_t input_slot;
