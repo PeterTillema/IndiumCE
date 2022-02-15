@@ -13,6 +13,7 @@ enum etype {
     ET_VARIABLE,
     ET_STRING,
     ET_TEMP_STRING,
+    ET_EQU,
     ET_LIST,
     ET_TEMP_LIST,
     ET_CUSTOM_LIST,

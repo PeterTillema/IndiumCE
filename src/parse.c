@@ -23,6 +23,8 @@ struct NODE *parse_full_program(ti_var_t slot, bool expect_end, bool expect_else
     while ((token = ti_GetC(slot)) != EOF) {
         parse_line++;
 
+        if (boot_CheckOnPressed()) parse_error("[ON]-key pressed");
+
         // Update the column properly
         if (token == tColon) {
             parse_col++;
@@ -165,7 +167,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // theta
         token_expression,    // 2-byte token
         token_expression,    // 2-byte token
-        token_unimplemented, // 2-byte token
+        token_expression,    // 2-byte token
         token_unimplemented, // prgm
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token

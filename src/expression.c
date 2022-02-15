@@ -9,6 +9,7 @@
 #include <fileioc.h>
 #include <math.h>
 #include <string.h>
+#include <tice.h>
 
 static struct NODE *output_stack[500];
 static struct NODE *op_stack[100];
@@ -44,8 +45,23 @@ static void print_node(struct NODE *tree, uint8_t depth) {
             case ET_NUM:
                 dbg_sprintf(dbgout, "Number: %f\n", tree->data.operand.num);
                 break;
+            case ET_COMPLEX:
+                dbg_sprintf(dbgout, "Complex: %f + %f\n", tree->data.operand.cplx_ptr->real, tree->data.operand.cplx_ptr->imag);
+                break;
             case ET_VARIABLE:
                 dbg_sprintf(dbgout, "Variable: %c\n", tree->data.operand.variable_nr + 'A');
+                break;
+            case ET_STRING:
+                dbg_sprintf(dbgout, "String Str%d\n", tree->data.operand.string_nr);
+                break;
+            case ET_EQU:
+                dbg_sprintf(dbgout, "Equation %d\n", tree->data.operand.equation_nr);
+                break;
+            case ET_LIST:
+                dbg_sprintf(dbgout, "List L%d\n", tree->data.operand.list_nr);
+                break;
+            case ET_MATRIX:
+                dbg_sprintf(dbgout, "Matrix [%c]\n", tree->data.operand.matrix_nr + 'A');
                 break;
             case ET_OPERATOR:
                 dbg_sprintf(dbgout, "Operator: %s\n", get_op_string(tree->data.operand.op));
@@ -175,6 +191,8 @@ struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma,
         if (token == tComma && stop_at_comma && !nested_funcs) break;
         if (token == tRParen && stop_at_paren && !nested_funcs) break;
 
+        if (boot_CheckOnPressed()) parse_error("[ON]-key pressed");
+
         // Execute the token function
         parse_col++;
         (*functions[token])(slot, token);
@@ -212,17 +230,6 @@ static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
     op_stack[op_stack_nr++] = op_node;
 }
 
-static void token_lbrace(__attribute__((unused)) ti_var_t slot, int token) {
-    if (need_mul_op) token_operator(slot, tMul);
-
-    // Allocate space for the function
-    struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
-    func_node->data.operand.func = token;
-
-    op_stack[op_stack_nr++] = func_node;
-    nested_funcs++;
-}
-
 static void token_rbrace(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
     need_mul_op = true;
 
@@ -242,16 +249,14 @@ static void token_rparen(__attribute__((unused)) ti_var_t slot, __attribute__((u
 static void token_function(ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
-    unsigned int func = token;
-
     // Allocate space for the function
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
-    func_node->data.operand.func = func;
+    func_node->data.operand.func = token;
 
     op_stack[op_stack_nr++] = func_node;
     nested_funcs++;
 
-    if (token != tLParen) {
+    if (token != tLParen && token != tLBrace) {
         // Eventually push an extra (
         struct NODE *paren_node = node_alloc(ET_FUNCTION_CALL);
         paren_node->data.operand.func = tLParen;
@@ -384,8 +389,7 @@ static void token_os_list(ti_var_t slot, int token) {
     // Check if it's a list element
     token = ti_GetC(slot);
     if (token == tLParen) {
-        need_mul_op = false;
-        token_function(slot, token + (list_nr << 8));
+        token_function(slot, 0x5D + (list_nr << 8));
     } else {
         struct NODE *list_node = node_alloc(ET_LIST);
         list_node->data.operand.list_nr = list_nr;
@@ -400,17 +404,26 @@ static void token_os_list(ti_var_t slot, int token) {
 
 static void token_os_matrix(ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
-    need_mul_op = true;
 
     uint8_t matrix_nr = ti_GetC(slot);
 
-    struct NODE *matrix_node = node_alloc(ET_MATRIX);
-    matrix_node->data.operand.matrix_nr = matrix_nr;
+    // Check if it's a matrix element
+    token = ti_GetC(slot);
+    if (token == tLParen) {
+        token_function(slot, 0x5C + (matrix_nr << 8));
+    } else {
+        struct NODE *matrix_node = node_alloc(ET_MATRIX);
+        matrix_node->data.operand.matrix_nr = matrix_nr;
 
-    output_stack[output_stack_nr++] = matrix_node;
+        output_stack[output_stack_nr++] = matrix_node;
+
+        need_mul_op = true;
+
+        if (token != EOF) seek_prev(slot);
+    }
 }
 
-static void token_os_string(ti_var_t slot, int token) {
+static void token_os_string(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
     need_mul_op = true;
 
@@ -420,6 +433,21 @@ static void token_os_string(ti_var_t slot, int token) {
     str_node->data.operand.string_nr = str_nr;
 
     output_stack[output_stack_nr++] = str_node;
+}
+
+static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+    need_mul_op = true;
+
+    uint8_t equ_nr = ti_GetC(slot);
+    if (equ_nr >= 0x80) equ_nr -= 0x80 - 28;
+    else if (equ_nr >= 0x40) equ_nr -= 0x40 - 22;
+    else if (equ_nr >= 0x20) equ_nr -= 0x20 - 10;
+
+    struct NODE *equ_node = node_alloc(ET_EQU);
+    equ_node->data.operand.equation_nr = equ_nr;
+
+    output_stack[output_stack_nr++] = equ_node;
 }
 
 static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
@@ -442,6 +470,25 @@ static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unuse
     output_stack[output_stack_nr++] = pi_node;
 }
 
+static void token_rand(ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+
+    // Check if it's a matrix element
+    token = ti_GetC(slot);
+    if (token == tLParen) {
+        token_function(slot, tRand);
+    } else {
+        struct NODE *rand_node = node_alloc(ET_FUNCTION_CALL);
+        rand_node->data.operand.func = tRand;
+
+        output_stack[output_stack_nr++] = rand_node;
+
+        need_mul_op = true;
+
+        if (token != EOF) seek_prev(slot);
+    }
+}
+
 static void token_unimplemented(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
     parse_error("Token not implemented");
 }
@@ -455,7 +502,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Boxplot
         token_unimplemented, // [
         token_unimplemented, // ]
-        token_lbrace,        // {
+        token_function,      // {
         token_rbrace,        // }
         token_operator,      // r
         token_operator,      // °
@@ -541,7 +588,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_variable,      // theta
         token_os_matrix,     // 2-byte token
         token_os_list,       // 2-byte token
-        token_unimplemented, // 2-byte token
+        token_os_equ,        // 2-byte token
         token_unimplemented, // prgm
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token
@@ -618,7 +665,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
         token_os_string,     // 2-byte token
-        token_unimplemented, // rand
+        token_rand,          // rand
         token_pi,            // pi
         token_empty_func,    // getKey
         token_unimplemented, // '
