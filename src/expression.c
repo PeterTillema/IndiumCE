@@ -47,7 +47,8 @@ static void print_node(struct NODE *tree, uint8_t depth) {
                 dbg_sprintf(dbgout, "Number: %f\n", tree->data.operand.num);
                 break;
             case ET_COMPLEX:
-                dbg_sprintf(dbgout, "Complex: %f + %f\n", tree->data.operand.cplx_ptr->real, tree->data.operand.cplx_ptr->imag);
+                dbg_sprintf(dbgout, "Complex: %f + %f\n", tree->data.operand.cplx_ptr->real,
+                            tree->data.operand.cplx_ptr->imag);
                 break;
             case ET_VARIABLE:
                 dbg_sprintf(dbgout, "Variable: %c\n", tree->data.operand.variable_nr + 'A');
@@ -81,6 +82,18 @@ static void print_node(struct NODE *tree, uint8_t depth) {
     }
 }
 
+static void add_to_output(struct NODE *tmp) {
+    if (output_stack_nr == 500) parse_error("Memory error");
+
+    output_stack[output_stack_nr++] = tmp;
+}
+
+static void add_to_stack(struct NODE *tmp) {
+    if (op_stack_nr == 100) parse_error("Memory error");
+
+    op_stack[op_stack_nr++] = tmp;
+}
+
 static void push_op(uint8_t precedence, int token) {
     while (op_stack_nr) {
         // Previous element on the stack should be an operator
@@ -89,7 +102,9 @@ static void push_op(uint8_t precedence, int token) {
 
         // Check if we need to move the previous operator to the output stack
         uint8_t prev_precedence = get_operator_precedence(prev->data.operand.op);
-        if (prev_precedence > precedence || (prev_precedence == precedence && (token == tPower || token == tComma))) break;
+        if (prev_precedence > precedence ||
+            (prev_precedence == precedence && (token == tPower || token == tComma)))
+            break;
 
         // Check for unary operator and set the args of the operator
         if (is_unary_op(prev_precedence)) {
@@ -123,10 +138,26 @@ static void push_rparen(uint8_t tok) {
         struct NODE *tmp = op_stack[i];
 
         if (tmp->data.type == ET_FUNCTION_CALL && tmp->data.operand.func == tok) {
-            // The previous is either the real function, like sin or cos, or just a standalone parenthesis, in which
-            // case it can't have more than 1 argument. Just leave the output as it is. Also, there should be enough
-            // output arguments available, otherwise something went really wrong
-            if (i && arg_count <= output_stack_nr && (tok == tLBrace || (op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen))) {
+            // This is the closing } or ) which is a single function without an extra parenthesis
+            if (arg_count <= output_stack_nr && (tok == tLBrace || tok == tLBrack)) {
+                struct NODE *tree = tmp->child = output_stack[output_stack_nr - arg_count];
+
+                // Set the arguments of the function
+                for (uint8_t j = 1; j < arg_count; j++) {
+                    tree->next = output_stack[output_stack_nr - arg_count + j];
+                    tree = tree->next;
+                }
+
+                output_stack_nr -= arg_count;
+                op_stack_nr--;
+
+                // Insert the function in the output queue
+                add_to_output(tmp);
+
+                return;
+            } else if (i && arg_count <= output_stack_nr && op_stack[i - 1]->data.type == ET_FUNCTION_CALL && op_stack[i - 1]->data.operand.func != tLParen) {
+                // This is a real function, like sin or cos. Free the parenthesis, and set all arguments from the
+                // output queue as the children of this function.
                 struct NODE *func_node = op_stack[i - 1];
                 struct NODE *tree = func_node->child = output_stack[output_stack_nr - arg_count];
 
@@ -142,12 +173,14 @@ static void push_rparen(uint8_t tok) {
                 op_stack_nr -= 2;
 
                 // Insert the function in the output queue
-                output_stack[output_stack_nr++] = func_node;
+                add_to_output(func_node);
 
                 return;
             } else if (arg_count == 1) {
-                // Free and pop the left parenthesis
-                free(op_stack[--op_stack_nr]);
+                // It is a standalone parenthesis, it should have only 1 argument. Only free the stack entry, as the
+                // last output queue item is already the correct one.
+                free(tmp);
+                op_stack_nr--;
 
                 return;
             } else {
@@ -231,7 +264,22 @@ static void token_operator(__attribute__((unused)) ti_var_t slot, int token) {
     struct NODE *op_node = node_alloc(ET_OPERATOR);
     op_node->data.operand.op = token;
 
-    op_stack[op_stack_nr++] = op_node;
+    add_to_stack(op_node);
+}
+
+static void token_rbrack(ti_var_t slot, int token) {
+    need_mul_op = true;
+
+    push_op(MAX_PRECEDENCE + 1, token);
+    push_rparen(tLBrack);
+
+    // Check if a "[" is coming, in which case we need an extra comma
+    token = ti_GetC(slot);
+    if ((uint8_t) token == tLBrack) {
+        token_operator(slot, tComma);
+    }
+
+    if (token != EOF) seek_prev(slot);
 }
 
 static void token_rbrace(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -257,15 +305,15 @@ static void token_function(ti_var_t slot, int token) {
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     func_node->data.operand.func = token;
 
-    op_stack[op_stack_nr++] = func_node;
+    add_to_stack(func_node);
     nested_funcs++;
 
-    if (token != tLParen && token != tLBrace) {
+    if (token != tLParen && token != tLBrace && token != tLBrack) {
         // Eventually push an extra (
         struct NODE *paren_node = node_alloc(ET_FUNCTION_CALL);
         paren_node->data.operand.func = tLParen;
 
-        op_stack[op_stack_nr++] = paren_node;
+        add_to_stack(paren_node);
     }
 }
 
@@ -366,12 +414,12 @@ static void token_number(ti_var_t slot, int token) {
         struct NODE *cplx_node = node_alloc(ET_COMPLEX);
         cplx_node->data.operand.cplx_ptr = cplx;
 
-        output_stack[output_stack_nr++] = cplx_node;
+        add_to_output(cplx_node);
     } else {
         struct NODE *num_node = node_alloc(ET_NUM);
         num_node->data.operand.num = num;
 
-        output_stack[output_stack_nr++] = num_node;
+        add_to_output(num_node);
     }
 }
 
@@ -382,7 +430,7 @@ static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     struct NODE *var_node = node_alloc(ET_VARIABLE);
     var_node->data.operand.variable_nr = token - tA;
 
-    output_stack[output_stack_nr++] = var_node;
+    add_to_output(var_node);
 }
 
 static void token_os_list(ti_var_t slot, int token) {
@@ -400,8 +448,7 @@ static void token_os_list(ti_var_t slot, int token) {
         struct NODE *list_node = node_alloc(ET_LIST);
         list_node->data.operand.list_nr = list_nr;
 
-        output_stack[output_stack_nr++] = list_node;
-
+        add_to_output(list_node);
         need_mul_op = true;
 
         if (token != EOF) seek_prev(slot);
@@ -423,8 +470,7 @@ static void token_os_matrix(ti_var_t slot, int token) {
         struct NODE *matrix_node = node_alloc(ET_MATRIX);
         matrix_node->data.operand.matrix_nr = matrix_nr;
 
-        output_stack[output_stack_nr++] = matrix_node;
-
+        add_to_output(matrix_node);
         need_mul_op = true;
 
         if (token != EOF) seek_prev(slot);
@@ -441,7 +487,7 @@ static void token_os_string(ti_var_t slot, __attribute__((unused)) int token) {
     struct NODE *str_node = node_alloc(ET_STRING);
     str_node->data.operand.string_nr = str_nr;
 
-    output_stack[output_stack_nr++] = str_node;
+    add_to_output(str_node);
 }
 
 static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
@@ -458,7 +504,7 @@ static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
     struct NODE *equ_node = node_alloc(ET_EQU);
     equ_node->data.operand.equation_nr = equ_nr;
 
-    output_stack[output_stack_nr++] = equ_node;
+    add_to_output(equ_node);
 }
 
 static void token_string(ti_var_t slot, int token) {
@@ -497,9 +543,9 @@ static void token_string(ti_var_t slot, int token) {
 
     struct NODE *string_node = node_alloc(ET_FUNCTION_CALL);
     string_node->data.operand.func = tString;
-    string_node->child = (struct NODE *)string_memory;
+    string_node->child = (struct NODE *) string_memory;
 
-    output_stack[output_stack_nr++] = string_node;
+    add_to_output(string_node);
 }
 
 static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
@@ -509,7 +555,7 @@ static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     func_node->data.operand.func = token;
 
-    output_stack[output_stack_nr++] = func_node;
+    add_to_output(func_node);
 }
 
 static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -519,7 +565,7 @@ static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unuse
     struct NODE *pi_node = node_alloc(ET_NUM);
     pi_node->data.operand.num = M_PI;
 
-    output_stack[output_stack_nr++] = pi_node;
+    add_to_output(pi_node);
 }
 
 static void token_rand(ti_var_t slot, int token) {
@@ -534,8 +580,7 @@ static void token_rand(ti_var_t slot, int token) {
         struct NODE *rand_node = node_alloc(ET_FUNCTION_CALL);
         rand_node->data.operand.func = tRand;
 
-        output_stack[output_stack_nr++] = rand_node;
-
+        add_to_output(rand_node);
         need_mul_op = true;
 
         if (token != EOF) seek_prev(slot);
@@ -553,8 +598,8 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // ►Frac
         token_operator,      // →
         token_unimplemented, // Boxplot
-        token_unimplemented, // [
-        token_unimplemented, // ]
+        token_function,      // [
+        token_rbrack,        // ]
         token_function,      // {
         token_rbrace,        // }
         token_operator,      // r

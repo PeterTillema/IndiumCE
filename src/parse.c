@@ -79,8 +79,8 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // ►Frac
         token_unimplemented, // →
         token_unimplemented, // Boxplot
-        token_unimplemented, // [
-        token_unimplemented, // ]
+        token_expression,    // [
+        token_expression,    // ]
         token_expression,    // {
         token_expression,    // }
         token_expression,    // r
