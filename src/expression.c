@@ -4,6 +4,7 @@
 #include "main.h"
 #include "operators.h"
 #include "routines.h"
+#include "variables.h"
 
 #include <debug.h>
 #include <fileioc.h>
@@ -67,13 +68,14 @@ static void print_node(struct NODE *tree, uint8_t depth) {
                 dbg_sprintf(dbgout, "Operator: %s\n", get_op_string(tree->data.operand.op));
                 break;
             case ET_FUNCTION_CALL:
-                dbg_sprintf(dbgout, "Function: %d\n", tree->data.operand.func);
+                dbg_sprintf(dbgout, "Function: %04X\n", tree->data.operand.func);
                 break;
             default:
                 break;
         }
 
-        print_node(tree->child, depth + 1);
+        if (tree->data.type != ET_FUNCTION_CALL || tree->data.operand.func != tString)
+            print_node(tree->child, depth + 1);
 
         tree = tree->next;
     }
@@ -149,7 +151,7 @@ static void push_rparen(uint8_t tok) {
 
                 return;
             } else {
-                parse_error("Unexpected \")\"");
+                break;
             }
         } else if (tmp->data.type == ET_OPERATOR && tmp->data.operand.op == tComma) {
             arg_count++;
@@ -157,9 +159,11 @@ static void push_rparen(uint8_t tok) {
 
             free(tmp);
         } else {
-            parse_error("Unexpected \")\"");
+            break;
         }
     }
+
+    parse_error("Unexpected \")\"");
 }
 
 static void empty_op_stack(void) {
@@ -385,10 +389,12 @@ static void token_os_list(ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
     uint8_t list_nr = ti_GetC(slot);
+    parse_col++;
 
     // Check if it's a list element
     token = ti_GetC(slot);
     if (token == tLParen) {
+        parse_col++;
         token_function(slot, 0x5D + (list_nr << 8));
     } else {
         struct NODE *list_node = node_alloc(ET_LIST);
@@ -406,10 +412,12 @@ static void token_os_matrix(ti_var_t slot, int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
     uint8_t matrix_nr = ti_GetC(slot);
+    parse_col++;
 
     // Check if it's a matrix element
     token = ti_GetC(slot);
     if (token == tLParen) {
+        parse_col++;
         token_function(slot, 0x5C + (matrix_nr << 8));
     } else {
         struct NODE *matrix_node = node_alloc(ET_MATRIX);
@@ -428,6 +436,7 @@ static void token_os_string(ti_var_t slot, __attribute__((unused)) int token) {
     need_mul_op = true;
 
     uint8_t str_nr = ti_GetC(slot);
+    parse_col++;
 
     struct NODE *str_node = node_alloc(ET_STRING);
     str_node->data.operand.string_nr = str_nr;
@@ -440,6 +449,8 @@ static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
     need_mul_op = true;
 
     uint8_t equ_nr = ti_GetC(slot);
+    parse_col++;
+
     if (equ_nr >= 0x80) equ_nr -= 0x80 - 28;
     else if (equ_nr >= 0x40) equ_nr -= 0x40 - 22;
     else if (equ_nr >= 0x20) equ_nr -= 0x20 - 10;
@@ -448,6 +459,47 @@ static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
     equ_node->data.operand.equation_nr = equ_nr;
 
     output_stack[output_stack_nr++] = equ_node;
+}
+
+static void token_string(ti_var_t slot, int token) {
+    if (need_mul_op) token_operator(slot, tMul);
+
+    uint8_t *start_ptr = ti_GetDataPtr(slot) + 1;
+    unsigned int length = 0;
+
+    do {
+        token = ti_GetC(slot);
+        length++;
+        parse_col++;
+
+        if (is_2_byte_token(token)) {
+            ti_GetC(slot);
+            length++;
+            parse_col++;
+        }
+    } while (token != EOF && (uint8_t) token != tEnter && (uint8_t) token != tStore && (uint8_t) token != tString);
+
+    if (length == 1) parse_error("Invalid string");
+
+    if ((uint8_t) token == tEnter || (uint8_t) token == tStore) {
+        parse_col--;
+        seek_prev(slot);
+    } else {
+        need_mul_op = true;
+    }
+
+    // This is a fake struct NODE, in fact it's just a pointer to the raw string
+    struct var_string *string_memory = malloc(length - 1 + 3);
+    if (string_memory == NULL) parse_error("Memory error");
+
+    string_memory->length = length - 1;
+    memcpy(string_memory->data, start_ptr, length - 1);
+
+    struct NODE *string_node = node_alloc(ET_FUNCTION_CALL);
+    string_node->data.operand.func = tString;
+    string_node->child = (struct NODE *)string_memory;
+
+    output_stack[output_stack_nr++] = string_node;
 }
 
 static void token_empty_func(__attribute__((unused)) ti_var_t slot, int token) {
@@ -476,6 +528,7 @@ static void token_rand(ti_var_t slot, int token) {
     // Check if it's a matrix element
     token = ti_GetC(slot);
     if (token == tLParen) {
+        parse_col++;
         token_function(slot, tRand);
     } else {
         struct NODE *rand_node = node_alloc(ET_FUNCTION_CALL);
@@ -536,7 +589,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_function,      // fMin(
         token_function,      // fMax(
         token_unimplemented, //
-        token_unimplemented, // "
+        token_string,        // "
         token_operator,      // ,
         token_empty_func,    // i
         token_unimplemented, // !

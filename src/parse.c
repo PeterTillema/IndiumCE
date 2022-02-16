@@ -115,7 +115,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // fMin(
         token_expression,    // fMax(
         token_unimplemented, //
-        token_unimplemented, // "
+        token_expression,    // "
         token_unimplemented, // ,
         token_expression,    // i
         token_expression,    // !
