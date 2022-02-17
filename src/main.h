@@ -5,7 +5,10 @@
 extern "C" {
 #endif
 
-#define MAX_NR_PROGRAMS 256
+#include <tice.h>
+
+#define HOMESCREEN_X ((gfx_lcdWidth - 260) / 2)
+#define HOMESCREEN_Y ((gfx_lcdHeight - 200) / 2)
 
 void force_exit(void) __attribute__((noreturn));
 

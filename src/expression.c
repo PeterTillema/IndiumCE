@@ -1,6 +1,5 @@
 #include "expression.h"
 #include "ast.h"
-#include "console.h"
 #include "main.h"
 #include "operators.h"
 #include "routines.h"
@@ -8,6 +7,7 @@
 
 #include <debug.h>
 #include <fileioc.h>
+#include <fontlibc.h>
 #include <math.h>
 #include <string.h>
 #include <tice.h>
@@ -27,12 +27,11 @@ static void (*functions[256])(ti_var_t slot, int token);
 void parse_error(const char *string) {
     char buf[26];
 
-    // Print the error to the console
-    console_print(string);
-    console_newline();
+    fontlib_DrawStringL(string, 26);
+    fontlib_Newline();
 
     sprintf(buf, "Line %d column %d", parse_line, parse_col);
-    console_print(buf);
+    fontlib_DrawString(buf);
 
     // And exit the program
     force_exit();
