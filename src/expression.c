@@ -19,7 +19,7 @@ static unsigned int op_stack_nr;
 static uint8_t nested_funcs = 0;
 static bool need_mul_op;
 
-unsigned int parse_line = 0;
+unsigned int parse_line = 1;
 unsigned int parse_col = 0;
 
 static void (*functions[256])(ti_var_t slot, int token);
@@ -38,12 +38,12 @@ void parse_error(const char *string) {
     force_exit();
 }
 
-static void print_node(struct NODE *tree, uint8_t depth) {
+static void print_node(struct NODE *tree, uint8_t depth) { // NOLINT(misc-no-recursion)
     while (tree != NULL) {
         for (uint8_t i = 0; i < depth; i++) dbg_sprintf(dbgout, "  ");
 
         switch (tree->data.type) {
-            case ET_NUM:
+            case ET_NUM: // NOLINT(bugprone-branch-clone)
                 dbg_sprintf(dbgout, "Number: %f\n", tree->data.operand.num);
                 break;
             case ET_COMPLEX:
@@ -218,8 +218,8 @@ struct NODE *token_expression(ti_var_t slot, int token) {
 
 struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma, bool stop_at_paren) {
     // Reset expression things
-    memset(&output_stack, 0, sizeof(output_stack));
-    memset(&op_stack, 0, sizeof(op_stack));
+    // memset(&output_stack, 0, sizeof(output_stack));
+    // memset(&op_stack, 0, sizeof(op_stack));
     output_stack_nr = 0;
     op_stack_nr = 0;
     need_mul_op = false;
@@ -231,11 +231,10 @@ struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma,
         if (boot_CheckOnPressed()) parse_error("[ON]-key pressed");
 
         // Execute the token function
-        parse_col++;
         (*functions[token])(slot, token);
 
         // And get the new token
-        token = ti_GetC(slot);
+        token = next_token(slot);
     }
 
     empty_op_stack();
@@ -274,12 +273,10 @@ static void token_rbrack(ti_var_t slot, int token) {
     push_rparen(tLBrack);
 
     // Check if a "[" is coming, in which case we need an extra comma
-    token = ti_GetC(slot);
+    token = peek_token(slot);
     if ((uint8_t) token == tLBrack) {
         token_operator(slot, tComma);
     }
-
-    if (token != EOF) seek_prev(slot);
 }
 
 static void token_rbrace(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -344,12 +341,8 @@ static void token_number(ti_var_t slot, int token) {
 
     // If it's a negation character, check if it's from a number or from another expression
     if (tok == tChs) {
-        token = ti_GetC(slot);
-        tok = (uint8_t) token;
-
-        parse_col++;
-
-        if (token != EOF) seek_prev(slot);
+        token = peek_token(slot);
+        tok = token;
 
         if (!(tok == tee || tok == tDecPt || (tok >= t0 && tok <= t9))) {
             // It's used as a negation character, push the unary function and continue
@@ -361,13 +354,11 @@ static void token_number(ti_var_t slot, int token) {
         negative_num = true;
     }
 
-    while ((token = ti_GetC(slot)) != EOF) {
+    while ((token = next_token(slot)) != EOF) {
         tok = token;
 
         // Should be a valid num char
         if (!(tok == tee || tok == tDecPt || tok == tii || tok == tChs || (tok >= t0 && tok <= t9))) break;
-
-        parse_col++;
 
         if (tok == tee) {
             if (in_exp) parse_error("Syntax error");
@@ -396,7 +387,7 @@ static void token_number(ti_var_t slot, int token) {
         }
     }
 
-    if (token != EOF && token != tii) seek_prev(slot);
+    if (token != tii) seek_prev(slot);
 
     // Get the right number, based on the exponent and negative flag
     if (negative_exp) exp = -exp;
@@ -433,16 +424,14 @@ static void token_variable(__attribute__((unused)) ti_var_t slot, int token) {
     add_to_output(var_node);
 }
 
-static void token_os_list(ti_var_t slot, int token) {
+static void token_os_list(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
-    uint8_t list_nr = ti_GetC(slot);
-    parse_col++;
+    uint8_t list_nr = next_token(slot);
 
     // Check if it's a list element
-    token = ti_GetC(slot);
-    if (token == tLParen) {
-        parse_col++;
+    if (peek_token(slot) == tLParen) {
+        next_token(slot);
         token_function(slot, 0x5D + (list_nr << 8));
     } else {
         struct NODE *list_node = node_alloc(ET_LIST);
@@ -450,21 +439,17 @@ static void token_os_list(ti_var_t slot, int token) {
 
         add_to_output(list_node);
         need_mul_op = true;
-
-        if (token != EOF) seek_prev(slot);
     }
 }
 
-static void token_os_matrix(ti_var_t slot, int token) {
+static void token_os_matrix(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
-    uint8_t matrix_nr = ti_GetC(slot);
-    parse_col++;
+    uint8_t matrix_nr = next_token(slot);
 
     // Check if it's a matrix element
-    token = ti_GetC(slot);
-    if (token == tLParen) {
-        parse_col++;
+    if (peek_token(slot) == tLParen) {
+        next_token(slot);
         token_function(slot, 0x5C + (matrix_nr << 8));
     } else {
         struct NODE *matrix_node = node_alloc(ET_MATRIX);
@@ -472,8 +457,6 @@ static void token_os_matrix(ti_var_t slot, int token) {
 
         add_to_output(matrix_node);
         need_mul_op = true;
-
-        if (token != EOF) seek_prev(slot);
     }
 }
 
@@ -481,8 +464,7 @@ static void token_os_string(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
     need_mul_op = true;
 
-    uint8_t str_nr = ti_GetC(slot);
-    parse_col++;
+    uint8_t str_nr = next_token(slot);
 
     struct NODE *str_node = node_alloc(ET_STRING);
     str_node->data.operand.string_nr = str_nr;
@@ -494,8 +476,7 @@ static void token_os_equ(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
     need_mul_op = true;
 
-    uint8_t equ_nr = ti_GetC(slot);
-    parse_col++;
+    uint8_t equ_nr = next_token(slot);
 
     if (equ_nr >= 0x80) equ_nr -= 0x80 - 28;
     else if (equ_nr >= 0x40) equ_nr -= 0x40 - 22;
@@ -514,21 +495,18 @@ static void token_string(ti_var_t slot, int token) {
     unsigned int length = 0;
 
     do {
-        token = ti_GetC(slot);
+        token = next_token(slot);
         length++;
-        parse_col++;
 
         if (is_2_byte_token(token)) {
-            ti_GetC(slot);
+            next_token(slot);
             length++;
-            parse_col++;
         }
     } while (token != EOF && (uint8_t) token != tEnter && (uint8_t) token != tStore && (uint8_t) token != tString);
 
     if (length == 1) parse_error("Invalid string");
 
     if ((uint8_t) token == tEnter || (uint8_t) token == tStore) {
-        parse_col--;
         seek_prev(slot);
     } else {
         need_mul_op = true;
@@ -568,13 +546,12 @@ static void token_pi(__attribute__((unused)) ti_var_t slot, __attribute__((unuse
     add_to_output(pi_node);
 }
 
-static void token_rand(ti_var_t slot, int token) {
+static void token_rand(ti_var_t slot, __attribute__((unused)) int token) {
     if (need_mul_op) token_operator(slot, tMul);
 
     // Check if it's a matrix element
-    token = ti_GetC(slot);
-    if (token == tLParen) {
-        parse_col++;
+    if (peek_token(slot) == tLParen) {
+        next_token(slot);
         token_function(slot, tRand);
     } else {
         struct NODE *rand_node = node_alloc(ET_FUNCTION_CALL);
@@ -582,8 +559,6 @@ static void token_rand(ti_var_t slot, int token) {
 
         add_to_output(rand_node);
         need_mul_op = true;
-
-        if (token != EOF) seek_prev(slot);
     }
 }
 

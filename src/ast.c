@@ -8,9 +8,7 @@ struct NODE *node_alloc(enum etype type) {
 
     // Allocate
     new_node = calloc(1, sizeof(struct NODE));
-    if (new_node == NULL) {
-        parse_error("Memory error");
-    }
+    if (new_node == NULL) parse_error("Memory error");
 
     new_node->data.type = type;
 

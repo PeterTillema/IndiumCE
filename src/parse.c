@@ -20,16 +20,12 @@ struct NODE *parse_full_program(ti_var_t slot, bool expect_end, bool expect_else
     struct NODE *root = NULL;
     struct NODE *tail = NULL;
 
-    while ((token = ti_GetC(slot)) != EOF) {
-        parse_line++;
-
+    while ((token = next_token(slot)) != EOF) {
         if (boot_CheckOnPressed()) parse_error("[ON]-key pressed");
 
-        // Update the column properly
+        // Skip if's a colon
         if (token == tColon) {
-            parse_col++;
-        } else {
-            parse_col = 0;
+            continue;
         }
 
         // Return if we hit an Else/End, but only if it's valid!
@@ -38,10 +34,16 @@ struct NODE *parse_full_program(ti_var_t slot, bool expect_end, bool expect_else
 
         // Call the function
         struct NODE *new_node = (*functions[token])(slot, token);
+
+        // Advance line and column
+        parse_line++;
+        parse_col = 0;
+
+        // Need to insert it?
         if (new_node == NULL)
             continue;
 
-        // And insert it to the chain
+        // Insert it to the chain
         if (root == NULL) {
             root = tail = new_node;
         } else {
@@ -54,18 +56,57 @@ struct NODE *parse_full_program(ti_var_t slot, bool expect_end, bool expect_else
 }
 
 static struct NODE *standalone_func(ti_var_t slot, int token) {
-    int token2 = ti_GetC(slot);
-
-    if (token2 == tColon || token2 == tEnter) {
-        seek_prev(slot);
-    } else if (token2 != EOF) {
-        parse_error("Syntax error");
-    }
+    if (!is_end_of_line(peek_token(slot))) parse_error("Syntax error");
 
     struct NODE *func_node = node_alloc(ET_FUNCTION_CALL);
     func_node->data.operand.func = token;
 
     return func_node;
+}
+
+static struct NODE *command_paren(ti_var_t slot, int token) {
+    struct NODE *command_node = node_alloc(ET_COMMAND);
+    command_node->data.operand.command = token;
+
+    struct NODE *tree = NULL;
+
+    for (;;) {
+        token = next_token(slot);
+
+        // Get the next expression
+        struct NODE *expr = parse_expression_line(slot, token, true, true);
+
+        if (tree == NULL) {
+            tree = command_node->child = expr;
+        } else {
+            tree->next = expr;
+            tree = tree->next;
+        }
+
+        token = current_token();
+
+        // There are a few stop cases possible:
+        //  - EOF, enter or a colon. In that case, get back to the previous token to handle the colon/newline properly
+        //  - Comma, in which case we just continue with parsing the next expression
+        //  - Right parenthesis, which should be the last token on a line
+        if (is_end_of_line(token)) {
+            seek_prev(slot);
+
+            break;
+        }
+
+        if (token == tRParen) {
+            if (!is_end_of_line(peek_token(slot))) parse_error("Syntax error");
+
+            break;
+        }
+    }
+
+    return command_node;
+}
+
+static struct NODE *token_newline(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
+    return NULL;
 }
 
 static struct NODE *token_unimplemented(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -136,7 +177,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_expression,    // or
         token_expression,    // xor
         token_expression,    // :
-        token_expression,    // \n
+        token_newline,       // \n
         token_expression,    // and
         token_expression,    // A
         token_expression,    // B
@@ -231,16 +272,16 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // RecallGDB
         token_unimplemented, // Line(
         token_unimplemented, // Vertical
-        token_unimplemented, // Pt-On(
-        token_unimplemented, // Pt-Off(
-        token_unimplemented, // Pt-Change(
-        token_unimplemented, // Pxl-On(
-        token_unimplemented, // Pxl-Off(
-        token_unimplemented, // Pxl-Change(
-        token_unimplemented, // Shade(
-        token_unimplemented, // Circle(
+        command_paren,       // Pt-On(
+        command_paren,       // Pt-Off(
+        command_paren,       // Pt-Change(
+        command_paren,       // Pxl-On(
+        command_paren,       // Pxl-Off(
+        command_paren,       // Pxl-Change(
+        command_paren,       // Shade(
+        command_paren,       // Circle(
         token_unimplemented, // Horizontal
-        token_unimplemented, // Tangent(
+        command_paren,       // Tangent(
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
         token_expression,    // 2-byte token
@@ -297,21 +338,21 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Prompt
         token_unimplemented, // Disp
         standalone_func,     // DispGraph
-        token_unimplemented, // Output(
+        command_paren,       // Output(
         standalone_func,     // ClrHome
-        token_unimplemented, // Fill(
-        token_unimplemented, // SortA(
-        token_unimplemented, // SortD(
+        command_paren,       // Fill(
+        command_paren,       // SortA(
+        command_paren,       // SortD(
         standalone_func,     // DispTable
-        token_unimplemented, // Menu(
-        token_unimplemented, // Send(
-        token_unimplemented, // Get(
+        command_paren,       // Menu(
+        command_paren,       // Send(
+        command_paren,       // Get(
         token_unimplemented, // PlotsOn
         token_unimplemented, // PlotsOff
         token_unimplemented, // ∟
-        token_unimplemented, // Plot1(
-        token_unimplemented, // Plot2(
-        token_unimplemented, // Plot3(
+        command_paren,       // Plot1(
+        command_paren,       // Plot2(
+        command_paren,       // Plot3(
         token_unimplemented, // 2-byte token
         token_expression,    // ^
         token_unimplemented, // ×√
