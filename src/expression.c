@@ -611,7 +611,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_string,        // "
         token_operator,      // ,
         token_empty_func,    // i
-        token_unimplemented, // !
+        token_operator,      // !
         token_unimplemented, // CubicReg
         token_unimplemented, // QuartReg
         token_number,        // 0
@@ -658,14 +658,14 @@ static void (*functions[256])(ti_var_t, int) = {
         token_variable,      // Y
         token_variable,      // Z
         token_variable,      // theta
-        token_os_matrix,     // 2-byte token
-        token_os_list,       // 2-byte token
-        token_os_equ,        // 2-byte token
+        token_os_matrix,     // 2-byte token (Matrices)
+        token_os_list,       // 2-byte token (Lists)
+        token_os_equ,        // 2-byte token (Equations)
         token_unimplemented, // prgm
-        token_unimplemented, // 2-byte token
-        token_unimplemented, // 2-byte token
-        token_unimplemented, // 2-byte token
-        token_unimplemented, // 2-byte token
+        token_unimplemented, // 2-byte token (Pictures)
+        token_unimplemented, // 2-byte token (GDBs)
+        token_unimplemented, // 2-byte token (Statistics)
+        token_unimplemented, // 2-byte token (Window)
         token_unimplemented, // Radian
         token_unimplemented, // Degree
         token_unimplemented, // Normal
@@ -692,7 +692,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // IndpntAsk
         token_unimplemented, // DependAuto
         token_unimplemented, // DependAsk
-        token_unimplemented, // 2-byte token
+        token_unimplemented, // 2-byte token (Format)
         token_unimplemented, // square mark
         token_unimplemented, // plus mark
         token_unimplemented, // dot mark
@@ -736,7 +736,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_unimplemented, // Tangent(
         token_unimplemented, // DrawInv
         token_unimplemented, // DrawF
-        token_os_string,     // 2-byte token
+        token_os_string,     // 2-byte token (Strings)
         token_rand,          // rand
         token_pi,            // pi
         token_empty_func,    // getKey
@@ -753,7 +753,7 @@ static void (*functions[256])(ti_var_t, int) = {
         token_function,      // not(
         token_function,      // iPart(
         token_function,      // fPart(
-        token_unimplemented, // 187
+        token_unimplemented, // 2-byte token (BB)
         token_function,      // √(
         token_function,      // ³√(
         token_function,      // ln(

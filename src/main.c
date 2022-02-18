@@ -6,6 +6,7 @@
 #include <fileioc.h>
 #include <fontlibc.h>
 #include <graphx.h>
+#include <intce.h>
 #include <keypadc.h>
 #include <tice.h>
 
@@ -66,6 +67,7 @@ int main(int argc, char *argv[]) {
     fontlib_HomeUp();
 
     // Setup keypad
+    int_Enable();
     kb_SetMode(MODE_3_CONTINUOUS);
 
     // First parse the program

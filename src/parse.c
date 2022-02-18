@@ -64,7 +64,7 @@ static struct NODE *standalone_func(ti_var_t slot, int token) {
     return func_node;
 }
 
-static struct NODE *command_paren(ti_var_t slot, int token) {
+static struct NODE *parse_command(ti_var_t slot, int token, bool end_paren) {
     struct NODE *command_node = node_alloc(ET_COMMAND);
     command_node->data.operand.command = token;
 
@@ -74,7 +74,7 @@ static struct NODE *command_paren(ti_var_t slot, int token) {
         token = next_token(slot);
 
         // Get the next expression
-        struct NODE *expr = parse_expression_line(slot, token, true, true);
+        struct NODE *expr = parse_expression_line(slot, token, true, end_paren);
 
         if (tree == NULL) {
             tree = command_node->child = expr;
@@ -95,7 +95,7 @@ static struct NODE *command_paren(ti_var_t slot, int token) {
             break;
         }
 
-        if (token == tRParen) {
+        if (end_paren && token == tRParen) {
             if (!is_end_of_line(peek_token(slot))) parse_error("Syntax error");
 
             break;
@@ -103,6 +103,14 @@ static struct NODE *command_paren(ti_var_t slot, int token) {
     }
 
     return command_node;
+}
+
+static struct NODE *command_args(ti_var_t slot, int token) {
+    return parse_command(slot, token, false);
+}
+
+static struct NODE *command_paren(ti_var_t slot, int token) {
+    return parse_command(slot, token, true);
 }
 
 static struct NODE *token_newline(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -214,12 +222,12 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token
         token_unimplemented, // 2-byte token
-        standalone_func,    // Radian
-        standalone_func,    // Degree
-        standalone_func,    // Normal
-        token_unimplemented, // Sci
-        token_unimplemented, // Eng
-        token_unimplemented, // Float
+        standalone_func,     // Radian
+        standalone_func,     // Degree
+        standalone_func,     // Normal
+        standalone_func,     // Sci
+        standalone_func,     // Eng
+        standalone_func,     // Float
         token_expression,    // =
         token_expression,    // <
         token_expression,    // >
@@ -261,7 +269,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         standalone_func,     // ZoomRcl
         token_unimplemented, // PrintScreen
         standalone_func,     // ZoomSto
-        token_unimplemented, // Text(
+        command_paren,       // Text(
         token_expression,    // nPr
         token_expression,    // nCr
         token_unimplemented, // FnOn
@@ -270,7 +278,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // RecallPic
         token_unimplemented, // StoreGDB
         token_unimplemented, // RecallGDB
-        token_unimplemented, // Line(
+        command_paren,       // Line(
         token_unimplemented, // Vertical
         command_paren,       // Pt-On(
         command_paren,       // Pt-Off(
@@ -336,7 +344,7 @@ static struct NODE *(*functions[256])(ti_var_t, int) = {
         token_unimplemented, // DS<(
         token_unimplemented, // Input
         token_unimplemented, // Prompt
-        token_unimplemented, // Disp
+        command_args,        // Disp
         standalone_func,     // DispGraph
         command_paren,       // Output(
         standalone_func,     // ClrHome
