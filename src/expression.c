@@ -395,14 +395,14 @@ static void token_number(ti_var_t slot, int token) {
 
     // And add it to the output stack
     if (is_complex) {
-        struct cplx_t *cplx = malloc(sizeof(struct cplx_t));
+        struct var_cplx *cplx = malloc(sizeof(struct var_cplx));
         if (cplx == NULL) parse_error("Memory error");
 
         cplx->real = 0;
         cplx->imag = num;
 
         struct NODE *cplx_node = node_alloc(ET_COMPLEX);
-        cplx_node->data.operand.cplx_ptr = cplx;
+        cplx_node->data.operand.cplx = cplx;
 
         add_to_output(cplx_node);
     } else {

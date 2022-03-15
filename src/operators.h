@@ -16,6 +16,8 @@ bool is_unary_op(uint8_t prec);
 
 const char *get_op_string(uint8_t op);
 
+struct NODE *evaluate_operator(struct NODE *func_node);
+
 #ifdef __cplusplus
 }
 #endif

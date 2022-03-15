@@ -66,3 +66,7 @@ const char *get_op_string(uint8_t op) {
 
     return operator_chars[index - operators];
 }
+
+struct NODE *evaluate_operator(struct NODE *func_node) {
+    return NULL;
+}

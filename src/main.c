@@ -1,4 +1,5 @@
 #include "main.h"
+#include "evaluate.h"
 #include "parse.h"
 #include "variables.h"
 #include "font/font.h"
@@ -8,6 +9,7 @@
 #include <graphx.h>
 #include <intce.h>
 #include <keypadc.h>
+#include <string.h>
 #include <tice.h>
 
 void force_exit(void) {
@@ -71,10 +73,13 @@ int main(int argc, char *argv[]) {
     kb_SetMode(MODE_3_CONTINUOUS);
 
     // First parse the program
-    parse_full_program(input_slot, false, false);
+    struct NODE *root = parse_full_program(input_slot, false, false);
 
     // Get all the variables
     get_all_os_variables();
+
+    // And evaluate the program
+    evaluate_consecutive_nodes(root);
 
     gfx_End();
 
