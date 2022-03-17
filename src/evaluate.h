@@ -1,16 +1,8 @@
 #ifndef EVALUATE_H
 #define EVALUATE_H
 
-#include "ast.h"
+struct NODE *evalNode(struct NODE *node);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void evaluate_consecutive_nodes(struct NODE *node);
-
-#ifdef __cplusplus
-}
-#endif
+void evalNodes(struct NODE *node);
 
 #endif

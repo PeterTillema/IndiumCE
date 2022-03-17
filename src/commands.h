@@ -3,14 +3,6 @@
 
 #include "ast.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void evaluate_command(struct NODE *func_node);
-
-#ifdef __cplusplus
-}
-#endif
+void evalCommand(struct NODE *func_node);
 
 #endif

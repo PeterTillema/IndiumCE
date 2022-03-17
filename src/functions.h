@@ -3,14 +3,6 @@
 
 #include "ast.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-struct NODE *evaluate_function(struct NODE *func_node);
-
-#ifdef __cplusplus
-}
-#endif
+struct NODE *evalFunction(struct NODE *func_node);
 
 #endif

@@ -1,24 +1,10 @@
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 #include <fileioc.h>
 
-extern unsigned int parse_line;
-extern unsigned int parse_col;
+struct NODE *expressionLine(ti_var_t slot, int token, bool stopAtComma, bool stopAtParen);
 
-void parse_error(const char *string) __attribute__((noreturn));
-
-struct NODE *token_expression(ti_var_t slot, int token);
-
-struct NODE *parse_expression_line(ti_var_t slot, int token, bool stop_at_comma, bool stop_at_paren);
-
-#ifdef __cplusplus
-}
-#endif
+struct NODE *tokenExpression(ti_var_t slot, int token);
 
 #endif

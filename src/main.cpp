@@ -1,22 +1,17 @@
-#include "main.h"
 #include "evaluate.h"
+#include "font/font.h"
+#include "globals.h"
 #include "parse.h"
 #include "variables.h"
-#include "font/font.h"
 
+#include <intce.h>
 #include <fileioc.h>
 #include <fontlibc.h>
 #include <graphx.h>
-#include <intce.h>
 #include <keypadc.h>
-#include <string.h>
-#include <tice.h>
 
-void force_exit(void) {
-    while (os_GetCSC() != sk_Enter);
-    gfx_End();
-    exit(-1);
-}
+#define HOMESCREEN_X ((gfx_lcdWidth - 260) / 2)
+#define HOMESCREEN_Y ((gfx_lcdHeight - 200) / 2)
 
 int main(int argc, char *argv[]) {
     ti_var_t input_slot = 0;
@@ -38,7 +33,7 @@ int main(int argc, char *argv[]) {
         char buf[9] = {0};
 
         os_ClrHome();
-        os_GetStringInput("Program name: ", buf, 8);
+        os_GetStringInput((char *) "Program name: ", buf, 8);
 
         // Get either the normal or protected program
         input_slot = ti_OpenVar(buf, "r", TI_PRGM_TYPE);
@@ -63,23 +58,23 @@ int main(int argc, char *argv[]) {
     gfx_FillRectangle_NoClip(HOMESCREEN_X - 2, HOMESCREEN_Y, 260 + 2, 200 + 2);
 
     // Setup font
-    fontlib_SetFont(font, 0);
+    fontlib_SetFont(font, static_cast<fontlib_load_options_t>(0));
     fontlib_SetWindow(HOMESCREEN_X, HOMESCREEN_Y, 260, 200);
     fontlib_SetNewlineOptions(FONTLIB_AUTO_SCROLL | FONTLIB_PRECLEAR_NEWLINE);
     fontlib_HomeUp();
 
     // Setup keypad
-    int_Enable();
-    kb_SetMode(MODE_3_CONTINUOUS);
+    kb_DisableOnLatch();
+    kb_SetMode(MODE_0_IDLE);
 
-    // First parse the program
-    struct NODE *root = parse_full_program(input_slot, false, false);
-
-    // Get all the variables
+    // Setup other things
     get_all_os_variables();
+    globals = Globals();
 
-    // And evaluate the program
-    evaluate_consecutive_nodes(root);
+    auto root = parseProgram(input_slot, false, false);
+    evalNodes(root);
+
+    while (!os_GetCSC());
 
     gfx_End();
 
