@@ -77,6 +77,7 @@ static struct NODE *opRecip(struct NODE *node) {
     else if (type == ET_COMPLEX) node->data.operand.cplx->opRecip();
     else if (type == ET_TEMP_LIST) node->data.operand.list->opRecip();
     else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opRecip();
+    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opRecip();
     else typeError();
 
     return node;
@@ -89,6 +90,20 @@ static struct NODE *opSqr(struct NODE *node) {
     else if (type == ET_COMPLEX) node->data.operand.cplx->opSqr();
     else if (type == ET_TEMP_LIST) node->data.operand.list->opSqr();
     else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opSqr();
+    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opSqr();
+    else typeError();
+
+    return node;
+}
+
+static struct NODE *opCube(struct NODE *node) {
+    enum etype type = node->data.type;
+
+    if (type == ET_NUMBER) node->data.operand.num->opCube();
+    else if (type == ET_COMPLEX) node->data.operand.cplx->opCube();
+    else if (type == ET_TEMP_LIST) node->data.operand.list->opCube();
+    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opCube();
+    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opCube();
     else typeError();
 
     return node;
@@ -103,19 +118,18 @@ struct NODE *evalOperator(struct NODE *node) {
         case tFromRad:
             result = opFromRad(leftNode);
             break;
-
         case tFromDeg:
             result = opFromDeg(leftNode);
             break;
-
         case tRecip:
             result = opRecip(leftNode);
             break;
-
         case tSqr:
             result = opSqr(leftNode);
             break;
-
+        case tCube:
+            result = opCube(leftNode);
+            break;
         default:
             result = nullptr;
     }

@@ -38,3 +38,7 @@ void typeError() {
 void divideBy0Error() {
     parseError("Divide by 0");
 }
+
+void dimensionError() {
+    parseError("Invalid dimension");
+}

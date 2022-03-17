@@ -86,6 +86,8 @@ List::~List() {
 }
 
 void List::opFromRad() {
+    if (elements.empty()) dimensionError();
+
     if (!globals.inRadianMode) {
         for (auto num : elements) {
             num.num *= 180 / M_PI;
@@ -94,6 +96,8 @@ void List::opFromRad() {
 }
 
 void List::opFromDeg() {
+    if (elements.empty()) dimensionError();
+
     if (globals.inRadianMode) {
         for (auto num : elements) {
             num.num *= M_PI / 180;
@@ -102,18 +106,24 @@ void List::opFromDeg() {
 }
 
 void List::opRecip() {
+    if (elements.empty()) dimensionError();
+
     for (auto num : elements) {
         num.opRecip();
     }
 }
 
 void List::opSqr() {
+    if (elements.empty()) dimensionError();
+
     for (auto num : elements) {
         num.opSqr();
     }
 }
 
 void List::opCube() {
+    if (elements.empty()) dimensionError();
+
     for (auto num : elements) {
         num.opCube();
     }
@@ -129,18 +139,24 @@ ComplexList::~ComplexList() {
 }
 
 void ComplexList::opRecip() {
+    if (elements.empty()) dimensionError();
+
     for (auto cplx : elements) {
         cplx.opRecip();
     }
 }
 
 void ComplexList::opSqr() {
+    if (elements.empty()) dimensionError();
+
     for (auto cplx : elements) {
         cplx.opSqr();
     }
 }
 
 void ComplexList::opCube() {
+    if (elements.empty()) dimensionError();
+
     for (auto cplx : elements) {
         cplx.opCube();
     }

@@ -11,6 +11,8 @@
 #include <fileioc.h>
 #include <keypadc.h>
 
+// tinystl::vector<struct NODE *> outputStack doesn't work, linking keeps freezing and not generating code
+// in the allowed number of passes. Design flaw somewhere?
 static struct NODE *outputStack[500];
 static struct NODE *opStack[100];
 static unsigned int outputStackNr;

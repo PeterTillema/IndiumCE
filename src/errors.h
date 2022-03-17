@@ -11,4 +11,6 @@ void typeError();
 
 void divideBy0Error();
 
+void dimensionError();
+
 #endif
