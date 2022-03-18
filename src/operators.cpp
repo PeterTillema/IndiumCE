@@ -119,6 +119,19 @@ static struct NODE *opFact(struct NODE *node) {
     return node;
 }
 
+static struct NODE *opChs(struct NODE *node) {
+    enum etype type = node->data.type;
+
+    if (type == ET_NUMBER) node->data.operand.num->opChs();
+    else if (type == ET_COMPLEX) node->data.operand.cplx->opChs();
+    else if (type == ET_TEMP_LIST) node->data.operand.list->opChs();
+    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opChs();
+    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opChs();
+    else typeError();
+
+    return node;
+}
+
 struct NODE *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
     struct NODE *leftNode = evalNode(node->child);
@@ -142,6 +155,9 @@ struct NODE *evalOperator(struct NODE *node) {
             break;
         case tFact:
             result = opFact(leftNode);
+            break;
+        case tChs:
+            result = opChs(leftNode);
             break;
         default:
             result = nullptr;

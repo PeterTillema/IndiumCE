@@ -40,6 +40,8 @@ public:
     void opCube();
 
     void opFact();
+
+    void opChs();
 };
 
 
@@ -59,6 +61,8 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opChs();
 };
 
 
@@ -92,6 +96,8 @@ public:
     void opCube();
 
     void opFact();
+
+    void opChs();
 };
 
 
@@ -108,6 +114,8 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opChs();
 };
 
 
@@ -126,6 +134,8 @@ public:
     void opTrnspos();
 
     void opCube();
+
+    void opChs();
 };
 
 

@@ -74,6 +74,10 @@ void Number::opFact() {
     this->num = result;
 }
 
+void Number::opChs() {
+    this->num = -this->num;
+}
+
 
 Complex::Complex(float real, float imag) {
     this->real = real;
@@ -130,6 +134,11 @@ void Complex::opCube() {
 
     this->real *= realSqr - 3 * imagSqr;
     this->imag *= 3 * realSqr - imagSqr;
+}
+
+void Complex::opChs() {
+    this->real = -this->real;
+    this->imag = -this->imag;
 }
 
 
@@ -203,6 +212,14 @@ void List::opFact() {
     }
 }
 
+void List::opChs() {
+    if (elements.empty()) dimensionError();
+
+    for (auto num : elements) {
+        num.opChs();
+    }
+}
+
 
 ComplexList::ComplexList(const tinystl::vector<Complex> &elements) {
     this->elements = elements;
@@ -236,6 +253,14 @@ void ComplexList::opCube() {
     }
 }
 
+void ComplexList::opChs() {
+    if (elements.empty()) dimensionError();
+
+    for (auto cplx : elements) {
+        cplx.opChs();
+    }
+}
+
 
 Matrix::Matrix(const tinystl::vector<tinystl::vector<Number>> &elements) {
     this->elements = elements;
@@ -259,4 +284,14 @@ void Matrix::opTrnspos() {
 
 void Matrix::opCube() {
     // todo: matrix cube
+}
+
+void Matrix::opChs() {
+    if (elements.empty()) dimensionError();
+
+    for (const auto& row : elements) {
+        for (auto num : row) {
+            num.opChs();
+        }
+    }
 }
