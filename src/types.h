@@ -39,6 +39,14 @@ public:
 
     void opCube();
 
+    void opPower(Number *rhs) const;
+
+    void opPower(Complex *rhs) const;
+
+    void opPower(List *rhs) const;
+
+    void opPower(ComplexList *rhs) const;
+
     void opFact();
 
     void opChs();
@@ -61,6 +69,14 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opPower(Number *rhs);
+
+    void opPower(Complex *rhs);
+
+    ComplexList *opPower(List *rhs) const;
+
+    void opPower(ComplexList *rhs) const;
 
     void opChs();
 };
@@ -85,6 +101,8 @@ public:
 
     ~List();
 
+    char *toString() const;
+
     void opFromRad();
 
     void opFromDeg();
@@ -94,6 +112,14 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opPower(Number *rhs);
+
+    void opPower(Complex *rhs);
+
+    void opPower(List *rhs);
+
+    void opPower(ComplexList *rhs);
 
     void opFact();
 
@@ -109,11 +135,21 @@ public:
 
     ~ComplexList();
 
+    char *toString() const;
+
     void opRecip();
 
     void opSqr();
 
     void opCube();
+
+    void opPower(Number *rhs);
+
+    void opPower(Complex *rhs) const;
+
+    void opPower(List *rhs) const;
+
+    void opPower(ComplexList *rhs) const;
 
     void opChs();
 };
@@ -134,6 +170,8 @@ public:
     void opTrnspos();
 
     void opCube();
+
+    void opPower(Number *rhs);
 
     void opChs();
 };

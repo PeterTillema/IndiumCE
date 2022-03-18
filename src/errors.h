@@ -15,6 +15,8 @@ void divideBy0Error() __attribute__((noreturn));
 
 void dimensionError() __attribute__((noreturn));
 
+void dimensionMismatch() __attribute__((noreturn));
+
 void overflowError() __attribute__((noreturn));
 
 void domainError() __attribute__((noreturn));

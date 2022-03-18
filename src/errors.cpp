@@ -43,6 +43,10 @@ void dimensionError() {
     parseError("Invalid dimension");
 }
 
+void dimensionMismatch() {
+    parseError("Dimension mismatch");
+}
+
 void overflowError() {
     parseError("Overflow error");
 }

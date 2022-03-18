@@ -109,6 +109,70 @@ static struct NODE *opCube(struct NODE *node) {
     return node;
 }
 
+static struct NODE *opPower(struct NODE *node) {
+    struct NODE *right = evalNode(node->next);
+
+    enum etype type = node->data.type;
+    enum etype type2 = right->data.type;
+
+    if (type == ET_NUMBER) {
+        if (type2 == ET_NUMBER) node->data.operand.num->opPower(right->data.operand.num);
+        else if (type2 == ET_COMPLEX) node->data.operand.num->opPower(right->data.operand.cplx);
+        else if (type2 == ET_TEMP_LIST) node->data.operand.num->opPower(right->data.operand.list);
+        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.num->opPower(right->data.operand.complexList);
+        else typeError();
+
+        nodeFree(node);
+
+        return right;
+    } else if (type == ET_COMPLEX) {
+        if (type2 == ET_NUMBER) {
+            node->data.operand.cplx->opPower(right->data.operand.num);
+
+            nodeFree(right);
+
+            return node;
+        } else if (type2 == ET_COMPLEX) {
+            node->data.operand.cplx->opPower(right->data.operand.cplx);
+
+            nodeFree(right);
+
+            return node;
+        } else if (type2 == ET_TEMP_LIST) {
+            auto result = new NODE();
+            result->data.type = ET_TEMP_LIST_COMPLEX;
+            result->data.operand.complexList = node->data.operand.cplx->opPower(right->data.operand.list);
+
+            nodeFree(node);
+            nodeFree(right);
+
+            return result;
+        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
+            node->data.operand.cplx->opPower(right->data.operand.complexList);
+
+            nodeFree(node);
+
+            return right;
+        } else typeError();
+    } else if (type == ET_TEMP_LIST) {
+        if (type2 == ET_NUMBER) {
+            node->data.operand.list->opPower(right->data.operand.num);
+
+            nodeFree(right);
+
+            return node;
+        } else if (type2 == ET_COMPLEX) {
+            node->data.operand.list->opPower(right->data.operand.cplx);
+
+            nodeFree(right);
+
+            return node;
+        }
+    } else {
+        typeError();
+    }
+}
+
 static struct NODE *opFact(struct NODE *node) {
     enum etype type = node->data.type;
 
@@ -137,6 +201,8 @@ struct NODE *evalOperator(struct NODE *node) {
     struct NODE *leftNode = evalNode(node->child);
     struct NODE *result;
 
+    leftNode->next = node->child->next;
+
     switch (op) {
         case tFromRad:
             result = opFromRad(leftNode);
@@ -152,6 +218,9 @@ struct NODE *evalOperator(struct NODE *node) {
             break;
         case tCube:
             result = opCube(leftNode);
+            break;
+        case tPower:
+            result = opPower(leftNode);
             break;
         case tFact:
             result = opFact(leftNode);

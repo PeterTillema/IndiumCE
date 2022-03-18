@@ -22,6 +22,14 @@ void commandDisp(struct NODE *node) {
             sprintf(buf, "%26s", result->data.operand.cplx->toString());
             fontlib_DrawString(buf);
             fontlib_Newline();
+        } else if (type == ET_TEMP_LIST) {
+            sprintf(buf, "%26s", result->data.operand.list->toString());
+            fontlib_DrawString(buf);
+            fontlib_Newline();
+        } else if (type == ET_TEMP_LIST_COMPLEX) {
+            sprintf(buf, "%26s", result->data.operand.complexList->toString());
+            fontlib_DrawString(buf);
+            fontlib_Newline();
         }
 
         // Get the next child

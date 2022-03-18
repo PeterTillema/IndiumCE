@@ -78,6 +78,39 @@ void Number::opChs() {
     this->num = -this->num;
 }
 
+void Number::opPower(Number *rhs) const {
+    rhs->num = powf(this->num, rhs->num);
+}
+
+void Number::opPower(Complex *rhs) const {
+    // a^(b + ci) = a^b(cos(c*ln(a)) + isin(c*ln(a)))
+    float clna = rhs->imag * logf(this->num);
+    float apowb = powf(this->num, rhs->real);
+
+    rhs->real = apowb * cosf(clna);
+    rhs->imag = apowb * sinf(clna);
+}
+
+void Number::opPower(List *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    for (auto number : rhs->elements) {
+        number.num = powf(this->num, number.num);
+    }
+}
+
+void Number::opPower(ComplexList *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    for (auto number : rhs->elements) {
+        float clna = number.imag * logf(this->num);
+        float apowb = powf(this->num, number.imag);
+
+        number.real = apowb * cosf(clna);
+        number.imag = apowb * sinf(clna);
+    }
+}
+
 
 Complex::Complex(float real, float imag) {
     this->real = real;
@@ -86,26 +119,31 @@ Complex::Complex(float real, float imag) {
 
 char *Complex::toString() const {
     static char buf[25];
+    char *numBuf;
 
-    char *numBuf = formatNum(this->real);
-    strcpy(buf, numBuf);
-
-    numBuf = formatNum(this->imag);
-
-    // Eventually append a "+"
-    char *p = numBuf;
-    if (*numBuf != '-') {
-        strcat(buf, "+");
-    } else {
-        p++;
+    if (this->real != 0) {
+        numBuf = formatNum(this->real);
+        strcpy(buf, numBuf);
     }
 
-    // Only append if it's not a single "1"
-    if (strlen(p) == 1 && *p == '1')
-        *p = '\0';
+    if (this->imag != 0) {
+        numBuf = formatNum(this->imag);
 
-    strcat(buf, numBuf);
-    strcat(buf, "i");
+        // Eventually append a "+"
+        if (this->real != 0) {
+            if (*numBuf == 0x0B) {
+                numBuf++;
+                strcat(buf, "-");
+            } else {
+                strcat(buf, "+");
+            }
+        }
+
+        // Only append if it's not a single "1"
+        if (strlen(numBuf) != 1 || *numBuf != '1') strcat(buf, numBuf);
+
+        strcat(buf, "\x80");
+    }
 
     return buf;
 }
@@ -141,6 +179,92 @@ void Complex::opChs() {
     this->imag = -this->imag;
 }
 
+void Complex::opPower(Number *rhs) {
+    // a + bi = r * (cos(theta) + isin(theta)), r=sqrt(a² + b²), tan(theta) = b / a
+    // (a + bi) ^ N = r ^ N * (cos(Ntheta) + isin(Ntheta))
+    float r = sqrtf(this->real * this->real + this->imag * this->imag);
+
+    float theta;
+    if (this->real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(this->imag / this->real);
+    }
+
+    float Ntheta = rhs->num * theta;
+    float rpowN = powf(r, rhs->num);
+
+    this->real = rpowN * cosf(Ntheta);
+    this->imag = rpowN * sinf(Ntheta);
+}
+
+void Complex::opPower(Complex *rhs) {
+    // (a + bi) ^ (c + di) =
+    //      r = a² + b²
+    //      tan(theta) = b / a
+    //      inner = c * theta + 0.5 * d * ln(r)
+    // r ^ (c / 2) * exp(-d * theta) * (cos(inner) + isin(inner)
+    float r = this->real * this->real + this->imag * this->imag;
+
+    float theta;
+    if (this->real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(this->imag / this->real);
+    }
+
+    float inner = rhs->real * theta + rhs->imag * logf(r) / 2;
+    float multiply = powf(r, rhs->real / 2) * expf(-rhs->imag * theta);
+
+    this->real = multiply * cosf(inner);
+    this->imag = multiply * sinf(inner);
+}
+
+ComplexList *Complex::opPower(List *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    auto complexList = tinystl::vector<Complex>();
+
+    float r = sqrtf(this->real * this->real + this->imag * this->imag);
+
+    float theta;
+    if (this->real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(this->imag / this->real);
+    }
+
+    for (auto number : rhs->elements) {
+        float Ntheta = number.num * theta;
+        float rpowN = powf(r, number.num);
+
+        complexList.push_back(Complex(rpowN * cosf(Ntheta), rpowN * sinf(Ntheta)));
+    }
+
+    return new ComplexList(complexList);
+}
+
+void Complex::opPower(ComplexList *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    float r = this->real * this->real + this->imag * this->imag;
+
+    float theta;
+    if (this->real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(this->imag / this->real);
+    }
+
+    for (auto cplx : rhs->elements) {
+        float inner = cplx.real * theta + cplx.imag * logf(r) / 2;
+        float multiply = powf(r, cplx.real / 2) * expf(-cplx.imag * theta);
+
+        cplx.real = multiply * cosf(inner);
+        cplx.imag = multiply * sinf(inner);
+    }
+}
+
 
 String::String(unsigned int length, char *string) {
     this->length = length;
@@ -158,6 +282,29 @@ List::List(const tinystl::vector<Number> &elements) {
 
 List::~List() {
     elements.clear();
+}
+
+char *List::toString() const {
+    if (elements.empty()) dimensionError();
+
+    static char buf[40] = "{";
+
+    for (auto number : elements) {
+        strcat(buf, number.toString());
+        strcat(buf, " ");
+
+        if (strlen(buf) > 26) break;
+    }
+
+    if (strlen(buf) > 25) {
+        buf[24] = ' ';
+        buf[25] = 0x0F;
+    } else {
+        // Overwrite space with closing bracket
+        buf[strlen(buf) - 1] = '}';
+    }
+
+    return buf;
 }
 
 void List::opFromRad() {
@@ -220,6 +367,40 @@ void List::opChs() {
     }
 }
 
+void List::opPower(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto num : elements) {
+        num.opPower(rhs);
+    }
+}
+
+void List::opPower(Complex *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto num : elements) {
+        num.opPower(rhs);
+    }
+}
+
+void List::opPower(List *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto num : elements) {
+        num.opPower(&rhs->elements[index]);
+        index++;
+    }
+}
+
+void List::opPower(ComplexList *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    // todo
+}
+
 
 ComplexList::ComplexList(const tinystl::vector<Complex> &elements) {
     this->elements = elements;
@@ -259,6 +440,29 @@ void ComplexList::opChs() {
     for (auto cplx : elements) {
         cplx.opChs();
     }
+}
+
+char *ComplexList::toString() const {
+    if (elements.empty()) dimensionError();
+
+    static char buf[50] = "{";
+
+    for (auto number : elements) {
+        strcat(buf, number.toString());
+        strcat(buf, " ");
+
+        if (strlen(buf) > 26) break;
+    }
+
+    if (strlen(buf) > 25) {
+        buf[24] = ' ';
+        buf[25] = 0x0F;
+    } else {
+        // Overwrite space with closing bracket
+        buf[strlen(buf) - 1] = '}';
+    }
+
+    return buf;
 }
 
 

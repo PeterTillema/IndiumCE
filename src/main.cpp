@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     }
 
     fontlib_SetFont(font, static_cast<fontlib_load_options_t>(0));
-    fontlib_SetWindow(0, 15, gfx_lcdWidth, gfx_lcdHeight - 15);
+    fontlib_SetWindow(5, 15, gfx_lcdWidth - 5, gfx_lcdHeight - 15);
     fontlib_SetLineSpacing(3, 3);
     fontlib_SetNewlineCode(0);
     fontlib_SetNewlineOptions(FONTLIB_AUTO_SCROLL | FONTLIB_PRECLEAR_NEWLINE);
