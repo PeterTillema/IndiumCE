@@ -38,6 +38,8 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opFact();
 };
 
 
@@ -88,6 +90,8 @@ public:
     void opSqr();
 
     void opCube();
+
+    void opFact();
 };
 
 

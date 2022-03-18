@@ -42,3 +42,11 @@ void divideBy0Error() {
 void dimensionError() {
     parseError("Invalid dimension");
 }
+
+void overflowError() {
+    parseError("Overflow error");
+}
+
+void domainError() {
+    parseError("Domain error");
+}

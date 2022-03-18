@@ -109,6 +109,16 @@ static struct NODE *opCube(struct NODE *node) {
     return node;
 }
 
+static struct NODE *opFact(struct NODE *node) {
+    enum etype type = node->data.type;
+
+    if (type == ET_NUMBER) node->data.operand.num->opFact();
+    else if (type == ET_TEMP_LIST) node->data.operand.list->opFact();
+    else typeError();
+
+    return node;
+}
+
 struct NODE *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
     struct NODE *leftNode = evalNode(node->child);
@@ -129,6 +139,9 @@ struct NODE *evalOperator(struct NODE *node) {
             break;
         case tCube:
             result = opCube(leftNode);
+            break;
+        case tFact:
+            result = opFact(leftNode);
             break;
         default:
             result = nullptr;

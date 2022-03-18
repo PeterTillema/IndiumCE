@@ -40,6 +40,40 @@ void Number::opCube() {
     this->num *= this->num * this->num;
 }
 
+void Number::opFact() {
+    // 0! = 1
+    if (this->num == 0) {
+        this->num = 1;
+        return;
+    }
+
+    bool isNeg = this->num < 0;
+    float absNum = fabsf(this->num);
+
+    // The ! operator goes from -69.5 to 69.5. Everything outside that is overflow error
+    if (absNum > 69.5) overflowError();
+
+    float rem = fmodf(absNum, 1);
+    if (rem != 0 && rem != 0.5) domainError();
+
+    float result = absNum;
+    while (absNum > 0) {
+        absNum--;
+
+        if (absNum == 0) break;
+        if (absNum == -0.5) {
+            result *= 1.772453850905516027298167483;
+            break;
+        }
+
+        result *= absNum;
+    }
+
+    if (isNeg) result = -result;
+
+    this->num = result;
+}
+
 
 Complex::Complex(float real, float imag) {
     this->real = real;
@@ -158,6 +192,14 @@ void List::opCube() {
 
     for (auto num : elements) {
         num.opCube();
+    }
+}
+
+void List::opFact() {
+    if (elements.empty()) dimensionError();
+
+    for (auto num : elements) {
+        num.opFact();
     }
 }
 
