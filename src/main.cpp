@@ -1,6 +1,5 @@
 #include "evaluate.h"
 #include "errors.h"
-#include "font/font.h"
 #include "globals.h"
 #include "parse.h"
 #include "variables.h"
@@ -11,9 +10,6 @@
 #include <graphx.h>
 #include <keypadc.h>
 #include <new>
-
-#define HOMESCREEN_X ((gfx_lcdWidth - 260) / 2)
-#define HOMESCREEN_Y ((gfx_lcdHeight - 200) / 2)
 
 int main(int argc, char *argv[]) {
     ti_var_t input_slot = 0;
@@ -53,16 +49,28 @@ int main(int argc, char *argv[]) {
 
     // Setup graphics
     gfx_Begin();
-    gfx_FillScreen(223);
-    gfx_PrintStringXY("IndiumCE v0.0.1 - By Peter \"PT_\" Tillema", 30, 1);
     gfx_HorizLine_NoClip(0, 10, gfx_lcdWidth);
+    gfx_SetColor(223);
+    gfx_FillRectangle_NoClip(0, 0, gfx_lcdWidth, 10);
+    gfx_PrintStringXY("IndiumCE v0.0.1 - By Peter \"PT_\" Tillema", 30, 1);
     gfx_SetColor(255);
-    gfx_FillRectangle_NoClip(HOMESCREEN_X - 2, HOMESCREEN_Y, 260 + 2, 200 + 2);
+    gfx_FillRectangle_NoClip(0, 11, gfx_lcdWidth, gfx_lcdHeight - 11);
 
     // Setup font
+    fontlib_font_t *font = fontlib_GetFontByIndex("OSLFONT", 0);
+    if (font == nullptr) {
+        gfx_PrintStringXY("Large font not found. Please transfer the", 1, 12);
+        gfx_PrintStringXY("right appvar to this calculator!", 1, 21);
+
+        forceExit();
+    }
+
     fontlib_SetFont(font, static_cast<fontlib_load_options_t>(0));
-    fontlib_SetWindow(HOMESCREEN_X, HOMESCREEN_Y, 260, 200);
+    fontlib_SetWindow(0, 15, gfx_lcdWidth, gfx_lcdHeight - 15);
+    fontlib_SetLineSpacing(3, 3);
+    fontlib_SetNewlineCode(0);
     fontlib_SetNewlineOptions(FONTLIB_AUTO_SCROLL | FONTLIB_PRECLEAR_NEWLINE);
+    fontlib_SetFirstPrintableCodePoint(1);
     fontlib_HomeUp();
 
     // Setup keypad
