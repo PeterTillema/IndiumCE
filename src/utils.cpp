@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "globals.h"
 
+#include <cmath>
 #include <cstring>
 #include <fileioc.h>
 #include <tice.h>
@@ -14,12 +15,32 @@ extern unsigned int parseCol;
 
 char *formatNum(float num) {
     static char buf[20];
+    float absNum;
+    int exp;
+    bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e10 || num < -1e10 || (num > -1e-3 && num < 1e-3));
 
+    // If necessary, get the right exponent and make sure the number is properly set
+    if (needExp) {
+        absNum = fabsf(num);
+        exp = (int)log10f(absNum);
+
+        if (globals.normalSciEngMode == ENG_MODE) {
+            if (exp < 0) exp -= 3;
+            exp = exp / 3 * 3;
+        }
+
+        num /= powf(10, (float)exp);
+    }
+
+    // Do format the number
     if (globals.fixNr == 255) {
         sprintf(buf, "%f", num);
     } else {
         sprintf(buf, "%10.*f", globals.fixNr, num);
     }
+
+    // Replace minus character
+    if (*buf == '-') *buf = 0x0B;
 
     // Strip trailing zeroes
     char *p = buf + strlen(buf) - 1;
@@ -28,6 +49,13 @@ char *formatNum(float num) {
     // Eventually strip decimal point too
     if (*p == '.') p--;
     *(p + 1) = '\0';
+
+    // Add |E<exp> to the string!
+    if (needExp) {
+        *(p + 1) = 0x1C;
+        sprintf(p + 2, "%d", exp);
+        if (exp < 0) *(p + 2) = 0x0B;
+    }
 
     return buf;
 }

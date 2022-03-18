@@ -6,6 +6,7 @@ Globals::Globals() {
     getKeyValue = 0;
     inRadianMode = !in_degree_mode();
     fixNr = get_fix_nr();
+    normalSciEngMode = get_norm_sci_end_mode();
 }
 
 uint8_t Globals::getKey() {

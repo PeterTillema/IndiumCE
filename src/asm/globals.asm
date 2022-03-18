@@ -1,6 +1,7 @@
 	public	__Z14in_degree_modev
 	public	__Z10get_fix_nrv
 	public	__Z7get_keyv
+	public	__Z21get_norm_sci_end_modev
 
 __Z14in_degree_modev:
 	ld	iy, 0xD00080 ; flags
@@ -13,6 +14,11 @@ __Z14in_degree_modev:
 
 __Z10get_fix_nrv:
 	ld	a, (0xD0250F) ; fmtDigits
+	ret
+
+__Z21get_norm_sci_end_modev:
+	ld	a, (0xD0008A) ; fmtFlags
+	and	a, 3
 	ret
 
 __Z7get_keyv:
