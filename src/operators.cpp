@@ -128,16 +128,8 @@ static struct NODE *opPower(struct NODE *node) {
     } else if (type == ET_COMPLEX) {
         if (type2 == ET_NUMBER) {
             node->data.operand.cplx->opPower(right->data.operand.num);
-
-            nodeFree(right);
-
-            return node;
         } else if (type2 == ET_COMPLEX) {
             node->data.operand.cplx->opPower(right->data.operand.cplx);
-
-            nodeFree(right);
-
-            return node;
         } else if (type2 == ET_TEMP_LIST) {
             auto result = new NODE();
             result->data.type = ET_TEMP_LIST_COMPLEX;
@@ -157,20 +149,46 @@ static struct NODE *opPower(struct NODE *node) {
     } else if (type == ET_TEMP_LIST) {
         if (type2 == ET_NUMBER) {
             node->data.operand.list->opPower(right->data.operand.num);
-
-            nodeFree(right);
-
-            return node;
         } else if (type2 == ET_COMPLEX) {
-            node->data.operand.list->opPower(right->data.operand.cplx);
+            auto result = new NODE();
+            result->data.type = ET_TEMP_LIST_COMPLEX;
+            result->data.operand.complexList = node->data.operand.list->opPower(right->data.operand.cplx);
 
+            nodeFree(node);
             nodeFree(right);
 
-            return node;
+            return result;
+        } else if (type2 == ET_TEMP_LIST) {
+            node->data.operand.list->opPower(right->data.operand.list);
+
+            nodeFree(node);
+
+            return right;
+        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
+            node->data.operand.list->opPower(right->data.operand.complexList);
+
+            nodeFree(node);
+
+            return right;
+        } else {
+            typeError();
         }
+    } else if (type == ET_TEMP_LIST_COMPLEX) {
+        if (type2 == ET_NUMBER) node->data.operand.complexList->opPower(right->data.operand.num);
+        else if (type2 == ET_COMPLEX) node->data.operand.complexList->opPower(right->data.operand.cplx);
+        else if (type2 == ET_TEMP_LIST) node->data.operand.complexList->opPower(right->data.operand.list);
+        else if (type2 == ET_TEMP_LIST_COMPLEX)
+            node->data.operand.complexList->opPower(right->data.operand.complexList);
+        else typeError();
+    } else if (type == ET_TEMP_MATRIX && type2 == ET_NUMBER) {
+        node->data.operand.matrix->opPower(right->data.operand.num);
     } else {
         typeError();
     }
+
+    nodeFree(right);
+
+    return node;
 }
 
 static struct NODE *opFact(struct NODE *node) {

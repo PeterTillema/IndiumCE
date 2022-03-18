@@ -62,7 +62,7 @@ void Number::opFact() {
 
         if (absNum == 0) break;
         if (absNum == -0.5) {
-            result *= 1.772453850905516027298167483;
+            result *= 1.772453850905516;
             break;
         }
 
@@ -78,7 +78,7 @@ void Number::opChs() {
     this->num = -this->num;
 }
 
-void Number::opPower(Number *rhs) const {
+void Number::opPower(Number *rhs) {
     rhs->num = powf(this->num, rhs->num);
 }
 
@@ -94,7 +94,7 @@ void Number::opPower(Complex *rhs) const {
 void Number::opPower(List *rhs) const {
     if (rhs->elements.empty()) dimensionError();
 
-    for (auto number : rhs->elements) {
+    for (auto number: rhs->elements) {
         number.num = powf(this->num, number.num);
     }
 }
@@ -102,7 +102,7 @@ void Number::opPower(List *rhs) const {
 void Number::opPower(ComplexList *rhs) const {
     if (rhs->elements.empty()) dimensionError();
 
-    for (auto number : rhs->elements) {
+    for (auto number: rhs->elements) {
         float clna = number.imag * logf(this->num);
         float apowb = powf(this->num, number.imag);
 
@@ -234,7 +234,7 @@ ComplexList *Complex::opPower(List *rhs) const {
         theta = atanf(this->imag / this->real);
     }
 
-    for (auto number : rhs->elements) {
+    for (auto number: rhs->elements) {
         float Ntheta = number.num * theta;
         float rpowN = powf(r, number.num);
 
@@ -256,7 +256,7 @@ void Complex::opPower(ComplexList *rhs) const {
         theta = atanf(this->imag / this->real);
     }
 
-    for (auto cplx : rhs->elements) {
+    for (auto cplx: rhs->elements) {
         float inner = cplx.real * theta + cplx.imag * logf(r) / 2;
         float multiply = powf(r, cplx.real / 2) * expf(-cplx.imag * theta);
 
@@ -289,7 +289,7 @@ char *List::toString() const {
 
     static char buf[40] = "{";
 
-    for (auto number : elements) {
+    for (auto number: elements) {
         strcat(buf, number.toString());
         strcat(buf, " ");
 
@@ -311,7 +311,7 @@ void List::opFromRad() {
     if (elements.empty()) dimensionError();
 
     if (!globals.inRadianMode) {
-        for (auto num : elements) {
+        for (auto &num: elements) {
             num.num *= 180 / M_PI;
         }
     }
@@ -321,7 +321,7 @@ void List::opFromDeg() {
     if (elements.empty()) dimensionError();
 
     if (globals.inRadianMode) {
-        for (auto num : elements) {
+        for (auto &num: elements) {
             num.num *= M_PI / 180;
         }
     }
@@ -330,7 +330,7 @@ void List::opFromDeg() {
 void List::opRecip() {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opRecip();
     }
 }
@@ -338,7 +338,7 @@ void List::opRecip() {
 void List::opSqr() {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opSqr();
     }
 }
@@ -346,7 +346,7 @@ void List::opSqr() {
 void List::opCube() {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opCube();
     }
 }
@@ -354,7 +354,7 @@ void List::opCube() {
 void List::opFact() {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opFact();
     }
 }
@@ -362,7 +362,7 @@ void List::opFact() {
 void List::opChs() {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opChs();
     }
 }
@@ -370,17 +370,24 @@ void List::opChs() {
 void List::opPower(Number *rhs) {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
-        num.opPower(rhs);
+    for (auto &num: elements) {
+        num.num = powf(num.num, rhs->num);
     }
 }
 
-void List::opPower(Complex *rhs) {
+ComplexList *List::opPower(Complex *rhs) {
     if (elements.empty()) dimensionError();
 
-    for (auto &num : elements) {
-        num.opPower(rhs);
+    auto complexList = tinystl::vector<Complex>();
+
+    for (auto &number: elements) {
+        Complex rhs2 = Complex(rhs->real, rhs->imag);
+
+        number.opPower(&rhs2);
+        complexList.push_back(rhs2);
     }
+
+    return new ComplexList(complexList);
 }
 
 void List::opPower(List *rhs) {
@@ -388,7 +395,7 @@ void List::opPower(List *rhs) {
     if (elements.size() != rhs->elements.size()) dimensionMismatch();
 
     unsigned int index = 0;
-    for (auto &num : elements) {
+    for (auto &num: elements) {
         num.opPower(&rhs->elements[index]);
         index++;
     }
@@ -398,7 +405,11 @@ void List::opPower(ComplexList *rhs) {
     if (elements.empty()) dimensionError();
     if (elements.size() != rhs->elements.size()) dimensionMismatch();
 
-    // todo
+    unsigned int index = 0;
+    for (auto &num: elements) {
+        num.opPower(&rhs->elements[index]);
+        index++;
+    }
 }
 
 
@@ -413,7 +424,7 @@ ComplexList::~ComplexList() {
 void ComplexList::opRecip() {
     if (elements.empty()) dimensionError();
 
-    for (auto &cplx : elements) {
+    for (auto &cplx: elements) {
         cplx.opRecip();
     }
 }
@@ -421,7 +432,7 @@ void ComplexList::opRecip() {
 void ComplexList::opSqr() {
     if (elements.empty()) dimensionError();
 
-    for (auto &cplx : elements) {
+    for (auto &cplx: elements) {
         cplx.opSqr();
     }
 }
@@ -429,7 +440,7 @@ void ComplexList::opSqr() {
 void ComplexList::opCube() {
     if (elements.empty()) dimensionError();
 
-    for (auto &cplx : elements) {
+    for (auto &cplx: elements) {
         cplx.opCube();
     }
 }
@@ -437,7 +448,7 @@ void ComplexList::opCube() {
 void ComplexList::opChs() {
     if (elements.empty()) dimensionError();
 
-    for (auto &cplx : elements) {
+    for (auto &cplx: elements) {
         cplx.opChs();
     }
 }
@@ -447,7 +458,7 @@ char *ComplexList::toString() const {
 
     static char buf[50] = "{";
 
-    for (auto number : elements) {
+    for (auto number: elements) {
         strcat(buf, number.toString());
         strcat(buf, " ");
 
@@ -463,6 +474,44 @@ char *ComplexList::toString() const {
     }
 
     return buf;
+}
+
+void ComplexList::opPower(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto &cplx: elements) {
+        cplx.opPower(rhs);
+    }
+}
+
+void ComplexList::opPower(Complex *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto &cplx: elements) {
+        cplx.opPower(rhs);
+    }
+}
+
+void ComplexList::opPower(List *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &num: elements) {
+        num.opPower(&rhs->elements[index]);
+        index++;
+    }
+}
+
+void ComplexList::opPower(ComplexList *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &num: elements) {
+        num.opPower(&rhs->elements[index]);
+        index++;
+    }
 }
 
 
@@ -493,9 +542,19 @@ void Matrix::opCube() {
 void Matrix::opChs() {
     if (elements.empty()) dimensionError();
 
-    for (const auto& row : elements) {
-        for (auto num : row) {
+    for (const auto &row: elements) {
+        for (auto num: row) {
             num.opChs();
+        }
+    }
+}
+
+void Matrix::opPower(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (const auto &row: elements) {
+        for (auto num: row) {
+            num.num = powf(num.num, rhs->num);
         }
     }
 }

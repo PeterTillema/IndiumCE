@@ -39,7 +39,7 @@ public:
 
     void opCube();
 
-    void opPower(Number *rhs) const;
+    void opPower(Number *rhs);
 
     void opPower(Complex *rhs) const;
 
@@ -115,7 +115,7 @@ public:
 
     void opPower(Number *rhs);
 
-    void opPower(Complex *rhs);
+    ComplexList *opPower(Complex *rhs);
 
     void opPower(List *rhs);
 
@@ -145,11 +145,11 @@ public:
 
     void opPower(Number *rhs);
 
-    void opPower(Complex *rhs) const;
+    void opPower(Complex *rhs);
 
-    void opPower(List *rhs) const;
+    void opPower(List *rhs);
 
-    void opPower(ComplexList *rhs) const;
+    void opPower(ComplexList *rhs);
 
     void opChs();
 };
