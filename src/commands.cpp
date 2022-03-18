@@ -1,7 +1,6 @@
 #include "commands.h"
 #include "ast.h"
 #include "evaluate.h"
-#include "globals.h"
 
 #include <cstdio>
 #include <fontlibc.h>
@@ -9,21 +8,18 @@
 
 void commandDisp(struct NODE *node) {
     struct NODE *node2;
-    char buf[27];
-    char num_buf[27];
+    static char buf[27] = {0};
 
     while (node != nullptr) {
         struct NODE *result = evalNode(node);
         enum etype type = result->data.type;
 
         if (type == ET_NUMBER) {
-            if (globals.fixNr == 255) {
-                sprintf(num_buf, "%f", result->data.operand.num->num);
-            } else {
-                sprintf(num_buf, "%10.*f", globals.fixNr, result->data.operand.num->num);
-            }
-
-            sprintf(buf, "%26s", num_buf);
+            sprintf(buf, "%26s", result->data.operand.num->toString());
+            fontlib_DrawString(buf);
+            fontlib_Newline();
+        } else if (type == ET_COMPLEX) {
+            sprintf(buf, "%26s", result->data.operand.cplx->toString());
             fontlib_DrawString(buf);
             fontlib_Newline();
         }

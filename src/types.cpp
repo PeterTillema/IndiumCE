@@ -1,11 +1,17 @@
 #include "types.h"
 #include "errors.h"
 #include "globals.h"
+#include "utils.h"
 
 #include <cmath>
+#include <cstring>
 
 Number::Number(float num) {
     this->num = num;
+}
+
+char *Number::toString() const {
+    return formatNum(this->num);
 }
 
 void Number::opFromRad() {
@@ -40,6 +46,32 @@ Complex::Complex(float real, float imag) {
     this->imag = imag;
 }
 
+char *Complex::toString() const {
+    static char buf[25];
+
+    char *numBuf = formatNum(this->real);
+    strcpy(buf, numBuf);
+
+    numBuf = formatNum(this->imag);
+
+    // Eventually append a "+"
+    char *p = numBuf;
+    if (*numBuf != '-') {
+        strcat(buf, "+");
+    } else {
+        p++;
+    }
+
+    // Only append if it's not a single "1"
+    if (strlen(p) == 1 && *p == '1')
+        *p = '\0';
+
+    strcat(buf, numBuf);
+    strcat(buf, "i");
+
+    return buf;
+}
+
 void Complex::opRecip() {
     // 1 / (a + bi) = (a - bi) / (a² + b²)
     float denom = this->real * this->real + this->imag + this->imag;
@@ -62,7 +94,7 @@ void Complex::opCube() {
     float realSqr = this->real * this->real;
     float imagSqr = this->imag * this->imag;
 
-    this->real = realSqr * this->real - 3 * this->real * imagSqr;
+    this->real *= realSqr - 3 * imagSqr;
     this->imag *= 3 * realSqr - imagSqr;
 }
 

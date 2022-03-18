@@ -15,7 +15,7 @@ void forceExit() {
 }
 
 void parseError(const char *string) {
-    char buf[26];
+    char buf[20];
 
     fontlib_DrawStringL(string, 26);
     fontlib_Newline();

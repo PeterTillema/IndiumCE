@@ -3,6 +3,7 @@ DESCRIPTION ?= IndiumCE - A faster BASIC interpreter
 COMPRESSED  ?= YES
 
 CXXFLAGS ?= -Wall -Wextra -Oz
+LINKER_SCRIPT ?= linker_script
 
 include $(shell cedev-config --makefile)
 

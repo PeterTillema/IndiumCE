@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "globals.h"
 
 #include <cstring>
 #include <fileioc.h>
@@ -10,6 +11,26 @@ static int nt = -2;
 
 extern unsigned int parseLine;
 extern unsigned int parseCol;
+
+char *formatNum(float num) {
+    static char buf[20];
+
+    if (globals.fixNr == 255) {
+        sprintf(buf, "%f", num);
+    } else {
+        sprintf(buf, "%10.*f", globals.fixNr, num);
+    }
+
+    // Strip trailing zeroes
+    char *p = buf + strlen(buf) - 1;
+    while (*p == '0' && --p > buf);
+
+    // Eventually strip decimal point too
+    if (*p == '.') p--;
+    *(p + 1) = '\0';
+
+    return buf;
+}
 
 bool is2ByteTok(int token) {
     uint8_t All2ByteTokens[9] = {tExtTok, tVarMat, tVarLst, tVarPict, tVarGDB, tVarOut, tVarSys, tVarStrng, t2ByteTok};

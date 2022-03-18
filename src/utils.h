@@ -3,6 +3,8 @@
 
 #include <fileioc.h>
 
+char *formatNum(float num);
+
 bool is2ByteTok(int token);
 
 void seekPrev(ti_var_t slot);

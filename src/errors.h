@@ -9,10 +9,10 @@ void parseError(const char *string) __attribute__((noreturn));
 
 void memoryError();
 
-void typeError();
+void typeError() __attribute__((noreturn));
 
-void divideBy0Error();
+void divideBy0Error() __attribute__((noreturn));
 
-void dimensionError();
+void dimensionError() __attribute__((noreturn));
 
 #endif

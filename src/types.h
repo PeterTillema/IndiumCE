@@ -27,6 +27,8 @@ public:
 
     explicit Number(float num);
 
+    char *toString() const;
+
     void opFromRad();
 
     void opFromDeg();
@@ -41,12 +43,14 @@ public:
 
 class Complex {
 public:
-    float real = {};
-    float imag = {};
+    float real{};
+    float imag{};
 
     Complex() = default;
 
     explicit Complex(float real, float imag);
+
+    char *toString() const;
 
     void opRecip();
 
