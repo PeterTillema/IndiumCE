@@ -1,4 +1,5 @@
 #include "evaluate.h"
+#include "errors.h"
 #include "font/font.h"
 #include "globals.h"
 #include "parse.h"
@@ -9,6 +10,7 @@
 #include <fontlibc.h>
 #include <graphx.h>
 #include <keypadc.h>
+#include <new>
 
 #define HOMESCREEN_X ((gfx_lcdWidth - 260) / 2)
 #define HOMESCREEN_Y ((gfx_lcdHeight - 200) / 2)
@@ -70,6 +72,7 @@ int main(int argc, char *argv[]) {
     // Setup other things
     get_all_os_variables();
     globals = Globals();
+    std::set_new_handler(memoryError);
 
     auto root = parseProgram(input_slot, false, false);
     evalNodes(root);

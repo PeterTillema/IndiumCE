@@ -20,9 +20,7 @@ void commandDisp(struct NODE *node) {
             if (globals.fixNr == 255) {
                 sprintf(num_buf, "%f", result->data.operand.num->num);
             } else {
-                char format[] = "%10.0f";
-                format[4] = (char) (globals.fixNr + 0x30);
-                sprintf(num_buf, format, result->data.operand.num);
+                sprintf(num_buf, "%10.*f", globals.fixNr, result->data.operand.num->num);
             }
 
             sprintf(buf, "%26s", num_buf);
