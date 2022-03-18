@@ -330,7 +330,7 @@ void List::opFromDeg() {
 void List::opRecip() {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opRecip();
     }
 }
@@ -338,7 +338,7 @@ void List::opRecip() {
 void List::opSqr() {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opSqr();
     }
 }
@@ -346,7 +346,7 @@ void List::opSqr() {
 void List::opCube() {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opCube();
     }
 }
@@ -354,7 +354,7 @@ void List::opCube() {
 void List::opFact() {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opFact();
     }
 }
@@ -362,7 +362,7 @@ void List::opFact() {
 void List::opChs() {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opChs();
     }
 }
@@ -370,7 +370,7 @@ void List::opChs() {
 void List::opPower(Number *rhs) {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opPower(rhs);
     }
 }
@@ -378,7 +378,7 @@ void List::opPower(Number *rhs) {
 void List::opPower(Complex *rhs) {
     if (elements.empty()) dimensionError();
 
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opPower(rhs);
     }
 }
@@ -388,7 +388,7 @@ void List::opPower(List *rhs) {
     if (elements.size() != rhs->elements.size()) dimensionMismatch();
 
     unsigned int index = 0;
-    for (auto num : elements) {
+    for (auto &num : elements) {
         num.opPower(&rhs->elements[index]);
         index++;
     }
@@ -413,7 +413,7 @@ ComplexList::~ComplexList() {
 void ComplexList::opRecip() {
     if (elements.empty()) dimensionError();
 
-    for (auto cplx : elements) {
+    for (auto &cplx : elements) {
         cplx.opRecip();
     }
 }
@@ -421,7 +421,7 @@ void ComplexList::opRecip() {
 void ComplexList::opSqr() {
     if (elements.empty()) dimensionError();
 
-    for (auto cplx : elements) {
+    for (auto &cplx : elements) {
         cplx.opSqr();
     }
 }
@@ -429,7 +429,7 @@ void ComplexList::opSqr() {
 void ComplexList::opCube() {
     if (elements.empty()) dimensionError();
 
-    for (auto cplx : elements) {
+    for (auto &cplx : elements) {
         cplx.opCube();
     }
 }
@@ -437,7 +437,7 @@ void ComplexList::opCube() {
 void ComplexList::opChs() {
     if (elements.empty()) dimensionError();
 
-    for (auto cplx : elements) {
+    for (auto &cplx : elements) {
         cplx.opChs();
     }
 }
