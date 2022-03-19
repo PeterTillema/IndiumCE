@@ -62,6 +62,18 @@ public:
     void opMul(ComplexList *rhs) const;
 
     void opMul(Matrix *rhs) const;
+
+    // div
+
+    void opAdd(Number *rhs) const;
+
+    void opAdd(Complex *rhs) const;
+
+    void opAdd(List *rhs) const;
+
+    void opAdd(ComplexList *rhs) const;
+
+    void opAdd(Matrix *rhs) const;
 };
 
 
@@ -101,6 +113,16 @@ public:
     ComplexList *opMul(List *rhs) const;
 
     void opMul(ComplexList *rhs) const;
+
+    // div
+
+    void opAdd(Number *rhs);
+
+    void opAdd(Complex *rhs);
+
+    ComplexList *opAdd(List *rhs) const;
+
+    void opAdd(ComplexList *rhs) const;
 };
 
 
@@ -156,6 +178,16 @@ public:
     void opMul(List *rhs);
 
     void opMul(ComplexList *rhs) const;
+
+    // div
+
+    void opAdd(Number *rhs);
+
+    ComplexList *opAdd(Complex *rhs) const;
+
+    void opAdd(List *rhs);
+
+    void opAdd(ComplexList *rhs) const;
 };
 
 
@@ -194,6 +226,16 @@ public:
     void opMul(List *rhs);
 
     void opMul(ComplexList *rhs);
+
+    // div
+
+    void opAdd(Number *rhs);
+
+    void opAdd(Complex *rhs);
+
+    void opAdd(List *rhs);
+
+    void opAdd(ComplexList *rhs);
 };
 
 
@@ -222,6 +264,12 @@ public:
     void opMul(Number *rhs);
 
     void opMul(Matrix *rhs);
+
+    // div
+
+    void opAdd(Number *rhs);
+
+    void opAdd(Matrix *rhs);
 };
 
 
