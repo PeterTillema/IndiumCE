@@ -78,7 +78,7 @@ void Number::opChs() {
     this->num = -this->num;
 }
 
-void Number::opPower(Number *rhs) {
+void Number::opPower(Number *rhs) const {
     rhs->num = powf(this->num, rhs->num);
 }
 
@@ -102,12 +102,48 @@ void Number::opPower(List *rhs) const {
 void Number::opPower(ComplexList *rhs) const {
     if (rhs->elements.empty()) dimensionError();
 
-    for (auto number: rhs->elements) {
+    for (auto &number: rhs->elements) {
         float clna = number.imag * logf(this->num);
         float apowb = powf(this->num, number.imag);
 
         number.real = apowb * cosf(clna);
         number.imag = apowb * sinf(clna);
+    }
+}
+
+void Number::opMul(Number *rhs) const {
+    rhs->num *= this->num;
+}
+
+void Number::opMul(Complex *rhs) const {
+    rhs->real *= this->num;
+    rhs->imag *= this->num;
+}
+
+void Number::opMul(List *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    for (auto &number: rhs->elements) {
+        number.num *= this->num;
+    }
+}
+
+void Number::opMul(ComplexList *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    for (auto &number: rhs->elements) {
+        number.real *= this->num;
+        number.imag *= this->num;
+    }
+}
+
+void Number::opMul(Matrix *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    for (const auto &row: rhs->elements) {
+        for (auto number: row) {
+            number.num *= this->num;
+        }
     }
 }
 
@@ -265,6 +301,41 @@ void Complex::opPower(ComplexList *rhs) const {
     }
 }
 
+void Complex::opMul(Number *rhs) {
+    this->real *= rhs->num;
+    this->imag *= rhs->num;
+}
+
+void Complex::opMul(Complex *rhs) {
+    // (a + bi) * (c + di) = (ac - bd) + (ad + bd)i
+    float tmp = this->real;
+    this->real = this->real * rhs->real - this->imag * rhs->imag;
+    this->imag = tmp * rhs->imag + this->imag * rhs->real;
+}
+
+ComplexList *Complex::opMul(List *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    auto complexList = tinystl::vector<Complex>();
+
+    for (auto &number: rhs->elements) {
+        complexList.push_back(Complex(this->real * number.num, this->imag * number.num));
+    }
+
+    return new ComplexList(complexList);
+}
+
+void Complex::opMul(ComplexList *rhs) const {
+    if (rhs->elements.empty()) dimensionError();
+
+    float tmp = this->real;
+
+    for (auto &cplx: rhs->elements) {
+        cplx.real = tmp * cplx.real - this->imag * cplx.imag;
+        cplx.imag = tmp * cplx.imag + this->imag * cplx.real;
+    }
+}
+
 
 String::String(unsigned int length, char *string) {
     this->length = length;
@@ -412,6 +483,49 @@ void List::opPower(ComplexList *rhs) {
     }
 }
 
+void List::opMul(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto &num : elements) {
+        num.num *= rhs->num;
+    }
+}
+
+ComplexList *List::opMul(Complex *rhs) const {
+    if (elements.empty()) dimensionError();
+
+    auto complexList = tinystl::vector<Complex>();
+
+    for (auto &num: elements) {
+        complexList.push_back(Complex(num.num * rhs->real, num.num * rhs->imag));
+    }
+
+    return new ComplexList(complexList);
+}
+
+void List::opMul(List *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &num: elements) {
+        num.num *= rhs->elements[index].num;
+        index++;
+    }
+}
+
+void List::opMul(ComplexList *rhs) const {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &cplx: rhs->elements) {
+        cplx.real *= elements[index].num;
+        cplx.imag *= elements[index].num;
+        index++;
+    }
+}
+
 
 ComplexList::ComplexList(const tinystl::vector<Complex> &elements) {
     this->elements = elements;
@@ -514,6 +628,45 @@ void ComplexList::opPower(ComplexList *rhs) {
     }
 }
 
+void ComplexList::opMul(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto &cplx : elements) {
+        cplx.opMul(rhs);
+    }
+}
+
+void ComplexList::opMul(Complex *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (auto &cplx : elements) {
+        cplx.opMul(rhs);
+    }
+}
+
+void ComplexList::opMul(List *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &cplx: elements) {
+        cplx.real *= rhs->elements[index].num;
+        cplx.imag *= rhs->elements[index].num;
+        index++;
+    }
+}
+
+void ComplexList::opMul(ComplexList *rhs) {
+    if (elements.empty()) dimensionError();
+    if (elements.size() != rhs->elements.size()) dimensionMismatch();
+
+    unsigned int index = 0;
+    for (auto &cplx : elements) {
+        cplx.opMul(&rhs->elements[index]);
+        index++;
+    }
+}
+
 
 Matrix::Matrix(const tinystl::vector<tinystl::vector<Number>> &elements) {
     this->elements = elements;
@@ -557,4 +710,18 @@ void Matrix::opPower(Number *rhs) {
             num.num = powf(num.num, rhs->num);
         }
     }
+}
+
+void Matrix::opMul(Number *rhs) {
+    if (elements.empty()) dimensionError();
+
+    for (const auto &row: elements) {
+        for (auto num: row) {
+            num.num *= rhs->num;
+        }
+    }
+}
+
+void Matrix::opMul(Matrix *rhs) {
+    // todo: matrix multiplication
 }

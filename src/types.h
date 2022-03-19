@@ -39,7 +39,7 @@ public:
 
     void opCube();
 
-    void opPower(Number *rhs);
+    void opPower(Number *rhs) const;
 
     void opPower(Complex *rhs) const;
 
@@ -50,6 +50,18 @@ public:
     void opFact();
 
     void opChs();
+
+    // nPr, nCr
+
+    void opMul(Number *rhs) const;
+
+    void opMul(Complex *rhs) const;
+
+    void opMul(List *rhs) const;
+
+    void opMul(ComplexList *rhs) const;
+
+    void opMul(Matrix *rhs) const;
 };
 
 
@@ -79,6 +91,16 @@ public:
     void opPower(ComplexList *rhs) const;
 
     void opChs();
+
+    // nPr, nCr
+
+    void opMul(Number *rhs);
+
+    void opMul(Complex *rhs);
+
+    ComplexList *opMul(List *rhs) const;
+
+    void opMul(ComplexList *rhs) const;
 };
 
 
@@ -124,6 +146,16 @@ public:
     void opFact();
 
     void opChs();
+
+    // nPr, nCr
+
+    void opMul(Number *rhs);
+
+    ComplexList *opMul(Complex *rhs) const;
+
+    void opMul(List *rhs);
+
+    void opMul(ComplexList *rhs) const;
 };
 
 
@@ -152,6 +184,16 @@ public:
     void opPower(ComplexList *rhs);
 
     void opChs();
+
+    // nPr, nCr
+
+    void opMul(Number *rhs);
+
+    void opMul(Complex *rhs);
+
+    void opMul(List *rhs);
+
+    void opMul(ComplexList *rhs);
 };
 
 
@@ -174,6 +216,12 @@ public:
     void opPower(Number *rhs);
 
     void opChs();
+
+    // nPr, nCr
+
+    void opMul(Number *rhs);
+
+    void opMul(Matrix *rhs);
 };
 
 
