@@ -43,7 +43,7 @@ static void pushOp(uint8_t precedence, int token) {
         // Check if we need to move the previous operator to the output stack
         uint8_t prevPrec = getOpPrecedence(prev->data.operand.op);
         if (prevPrec > precedence ||
-            (prevPrec == precedence && (token == tPower || token == tComma)))
+            (prevPrec == precedence && (token == tPower || token == tChs || token == tComma)))
             break;
 
         // Check for unary operator and set the args of the operator
@@ -257,7 +257,6 @@ static void tokenFunction(ti_var_t slot, int token) {
 static void tokenNumber(ti_var_t slot, int token) {
     float num = 0;
     bool inExp = false;
-    bool negativeNum = false;
     bool negativeExp = false;
     bool isComplex = false;
     int exp = 0;
@@ -275,23 +274,8 @@ static void tokenNumber(ti_var_t slot, int token) {
         inExp = true;
     } else if (tok == tDecPt) {
         fracNum++;
-    } else if (tok != tChs) {
+    } else {
         num = (float) tok - t0;
-    }
-
-    // If it's a negation character, check if it's from a number or from another expression
-    if (tok == tChs) {
-        token = tokenPeek();
-        tok = token;
-
-        if (!(tok == tee || tok == tDecPt || (tok >= t0 && tok <= t9))) {
-            // It's used as a negation character, push the unary function and continue
-            tokenOperator(slot, tChs);
-
-            return;
-        }
-
-        negativeNum = true;
     }
 
     while ((token = tokenNext(slot)) != EOF) {
@@ -332,7 +316,6 @@ static void tokenNumber(ti_var_t slot, int token) {
     // Get the right number, based on the exponent and negative flag
     if (negativeExp) exp = -exp;
     if (inExp) num = num * powf(10, (float) exp);
-    if (negativeNum) num = -num;
 
     // And add it to the output stack
     auto node = new NODE();
@@ -684,7 +667,7 @@ void (*expressionFunctions[256])(ti_var_t, int) = {
         tokenEmptyFunc,      // getKey
         tokenUnimplemented,  // '
         tokenUnimplemented,  // ?
-        tokenNumber,         // - (neg)
+        tokenOperator,       // - (neg)
         tokenFunction,       // int(
         tokenFunction,       // abs(
         tokenFunction,       // det(
