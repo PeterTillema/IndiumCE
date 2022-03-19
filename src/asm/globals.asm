@@ -1,3 +1,4 @@
+	section	.text
 	public	__Z14in_degree_modev
 	public	__Z10get_fix_nrv
 	public	__Z7get_keyv
