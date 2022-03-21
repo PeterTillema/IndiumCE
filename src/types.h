@@ -1,275 +1,114 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include "errors.h"
 #include "TINYSTL/vector.h"
 
 #include <cstdint>
 
 using tinystl::vector;
 
-class Number;
+class Operator;
 
-class Complex;
-
-class String;
-
-class List;
-
-class ComplexList;
-
-class Matrix;
-
-class Number {
+class BaseType {
 public:
-    float num{};
+    virtual ~BaseType() = default;
+
+    virtual char *toString() const;
+
+    virtual BaseType *eval(Operator &op) = 0;
+};
+
+class Number : public BaseType {
+public:
+    float num = 0;
 
     Number() = default;
 
+    ~Number() override = default;
+
     explicit Number(float num);
 
-    char *toString() const;
+    char *toString() const override;
 
-    void opFromRad();
-
-    void opFromDeg();
-
-    void opRecip();
-
-    void opSqr();
-
-    void opCube();
-
-    void opPower(Number *rhs) const;
-
-    void opPower(Complex *rhs) const;
-
-    void opPower(List *rhs) const;
-
-    void opPower(ComplexList *rhs) const;
-
-    void opFact();
-
-    void opChs();
-
-    // nPr, nCr
-
-    void opMul(Number *rhs) const;
-
-    void opMul(Complex *rhs) const;
-
-    void opMul(List *rhs) const;
-
-    void opMul(ComplexList *rhs) const;
-
-    void opMul(Matrix *rhs) const;
-
-    // div
-
-    void opAdd(Number *rhs) const;
-
-    void opAdd(Complex *rhs) const;
-
-    void opAdd(List *rhs) const;
-
-    void opAdd(ComplexList *rhs) const;
-
-    void opAdd(Matrix *rhs) const;
+    BaseType *eval(Operator &op) override;
 };
 
-
-class Complex {
+class Complex : public BaseType {
 public:
-    float real{};
-    float imag{};
+    float real;
+    float imag;
 
-    Complex() = default;
+    Complex(float real, float imag);
 
-    explicit Complex(float real, float imag);
+    ~Complex() override = default;
 
-    char *toString() const;
-
-    void opRecip();
-
-    void opSqr();
-
-    void opCube();
-
-    void opPower(Number *rhs);
-
-    void opPower(Complex *rhs);
-
-    ComplexList *opPower(List *rhs) const;
-
-    void opPower(ComplexList *rhs) const;
-
-    void opChs();
-
-    // nPr, nCr
-
-    void opMul(Number *rhs);
-
-    void opMul(Complex *rhs);
-
-    ComplexList *opMul(List *rhs) const;
-
-    void opMul(ComplexList *rhs) const;
-
-    // div
-
-    void opAdd(Number *rhs);
-
-    void opAdd(Complex *rhs);
-
-    ComplexList *opAdd(List *rhs) const;
-
-    void opAdd(ComplexList *rhs) const;
+    BaseType *eval(Operator &op) override;
 };
 
+class List : public BaseType {
+public:
+    vector<Number *> elements;
 
-class String {
+    explicit List(vector<Number *> &elements);
+
+    ~List() override;
+
+    BaseType * eval(Operator &op) override;
+};
+
+class ComplexList : public BaseType {
+public:
+    vector<Complex *> elements;
+
+    explicit ComplexList(const vector<Complex *> &elements);
+
+    ~ComplexList() override;
+
+    BaseType *eval(Operator &op) override;
+};
+
+class String : public BaseType {
 public:
     unsigned int length;
     char *string;
 
     explicit String(unsigned int length, char *string);
 
-    ~String();
+    ~String() override;
+
+    BaseType *eval(Operator &op) override;
 };
 
-
-class List {
+class Matrix : public BaseType {
 public:
-    vector<Number> elements;
+    vector<vector<Number *>> elements;
 
-    explicit List(const tinystl::vector<Number> &elements);
+    explicit Matrix(vector<vector<Number *>> &elements);
 
-    ~List();
+    ~Matrix() override;
 
-    char *toString() const;
-
-    void opFromRad();
-
-    void opFromDeg();
-
-    void opRecip();
-
-    void opSqr();
-
-    void opCube();
-
-    void opPower(Number *rhs);
-
-    ComplexList *opPower(Complex *rhs);
-
-    void opPower(List *rhs);
-
-    void opPower(ComplexList *rhs);
-
-    void opFact();
-
-    void opChs();
-
-    // nPr, nCr
-
-    void opMul(Number *rhs);
-
-    ComplexList *opMul(Complex *rhs) const;
-
-    void opMul(List *rhs);
-
-    void opMul(ComplexList *rhs) const;
-
-    // div
-
-    void opAdd(Number *rhs);
-
-    ComplexList *opAdd(Complex *rhs) const;
-
-    void opAdd(List *rhs);
-
-    void opAdd(ComplexList *rhs) const;
+    BaseType *eval(Operator &op) override;
 };
 
-
-class ComplexList {
+class Operator {
 public:
-    vector<Complex> elements;
+    virtual ~Operator() = default;
 
-    explicit ComplexList(const tinystl::vector<Complex> &elements);
+    virtual BaseType *eval(Number &rhs);
 
-    ~ComplexList();
+    virtual BaseType *eval(Complex &rhs);
 
-    char *toString() const;
+    virtual BaseType *eval(List &rhs);
 
-    void opRecip();
+    virtual BaseType *eval(ComplexList &rhs);
 
-    void opSqr();
+    virtual BaseType *eval(String &rhs);
 
-    void opCube();
-
-    void opPower(Number *rhs);
-
-    void opPower(Complex *rhs);
-
-    void opPower(List *rhs);
-
-    void opPower(ComplexList *rhs);
-
-    void opChs();
-
-    // nPr, nCr
-
-    void opMul(Number *rhs);
-
-    void opMul(Complex *rhs);
-
-    void opMul(List *rhs);
-
-    void opMul(ComplexList *rhs);
-
-    // div
-
-    void opAdd(Number *rhs);
-
-    void opAdd(Complex *rhs);
-
-    void opAdd(List *rhs);
-
-    void opAdd(ComplexList *rhs);
+    virtual BaseType *eval(Matrix &rhs);
 };
 
-
-class Matrix {
-public:
-    vector<vector<Number>> elements;
-
-    explicit Matrix(const vector<vector<Number>> &elements);
-
-    ~Matrix();
-
-    void opRecip();
-
-    void opSqr();
-
-    void opTrnspos();
-
-    void opCube();
-
-    void opPower(Number *rhs);
-
-    void opChs();
-
-    // nPr, nCr
-
-    void opMul(Number *rhs);
-
-    void opMul(Matrix *rhs);
-
-    // div
-
-    void opAdd(Number *rhs);
-
-    void opAdd(Matrix *rhs);
+class UnaryOperator : public Operator {
 };
 
 

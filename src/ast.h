@@ -9,16 +9,12 @@ enum etype {
     ET_VARIABLE,
 
     ET_STRING,
-    ET_TEMP_STRING,
     ET_EQU,
 
     ET_LIST,
-    ET_TEMP_LIST,
-    ET_TEMP_LIST_COMPLEX,
     ET_CUSTOM_LIST,
 
     ET_MATRIX,
-    ET_TEMP_MATRIX,
 
     ET_OPERATOR,
     ET_FUNCTION_CALL,   // The difference between a function call and a command is that a function call can be used in
@@ -39,13 +35,8 @@ union operand_t {
     unsigned int func;
     unsigned int command;
 
-    // These are the main types, everything will resolve to one of these types
     Number *num;
     Complex *cplx;
-    List *list;
-    ComplexList *complexList;
-    Matrix *matrix;
-    String *string;
 };
 
 struct element_t {
@@ -58,7 +49,5 @@ struct NODE {
     struct NODE *child;
     struct element_t data;
 };
-
-void nodeFree(struct NODE *node);
 
 #endif

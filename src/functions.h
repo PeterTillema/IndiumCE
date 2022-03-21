@@ -3,6 +3,6 @@
 
 #include "ast.h"
 
-struct NODE *evalFunction(struct NODE *func_node);
+BaseType *evalFunction(struct NODE *func_node);
 
 #endif

@@ -2,7 +2,9 @@
 #include "ast.h"
 #include "errors.h"
 #include "evaluate.h"
+#include "globals.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <tice.h>
@@ -50,346 +52,183 @@ bool isUnaryOp(uint8_t prec) {
     return prec <= 4 && prec != 2;
 }
 
-static struct NODE *opFromRad(struct NODE *node) {
-    enum etype type = node->data.type;
+BaseType *OpFromRad::eval(Number &rhs) {
+    if (globals.inRadianMode) {
+        return new Number(rhs.num);
+    }
 
-    if (type == ET_NUMBER) node->data.operand.num->opFromRad();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opFromRad();
-    else typeError();
-
-    return node;
+    return new Number(rhs.num * 180 / M_PI);
 }
 
-static struct NODE *opFromDeg(struct NODE *node) {
-    enum etype type = node->data.type;
+BaseType *OpFromDeg::eval(Number &rhs) {
+    if (globals.inRadianMode) {
+        return new Number(rhs.num * M_PI / 180);
+    }
 
-    if (type == ET_NUMBER) node->data.operand.num->opFromDeg();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opFromDeg();
-    else typeError();
-
-    return node;
+    return new Number(rhs.num);
 }
 
-static struct NODE *opRecip(struct NODE *node) {
-    enum etype type = node->data.type;
+BaseType *OpRecip::eval(Number &rhs) {
+    if (rhs.num == 0) divideBy0Error();
 
-    if (type == ET_NUMBER) node->data.operand.num->opRecip();
-    else if (type == ET_COMPLEX) node->data.operand.cplx->opRecip();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opRecip();
-    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opRecip();
-    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opRecip();
-    else typeError();
-
-    return node;
+    return new Number(1 / rhs.num);
 }
 
-static struct NODE *opSqr(struct NODE *node) {
-    enum etype type = node->data.type;
+BaseType *OpRecip::eval(Complex &rhs) {
+    // 1 / (a + bi) = (a - bi) / (a² + b²)
+    float denom = rhs.real * rhs.real + rhs.imag + rhs.imag;
 
-    if (type == ET_NUMBER) node->data.operand.num->opSqr();
-    else if (type == ET_COMPLEX) node->data.operand.cplx->opSqr();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opSqr();
-    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opSqr();
-    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opSqr();
-    else typeError();
+    if (denom == 0) divideBy0Error();
 
-    return node;
+    return new Complex(rhs.real / denom, rhs.imag / -denom);
 }
 
-static struct NODE *opCube(struct NODE *node) {
-    enum etype type = node->data.type;
-
-    if (type == ET_NUMBER) node->data.operand.num->opCube();
-    else if (type == ET_COMPLEX) node->data.operand.cplx->opCube();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opCube();
-    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opCube();
-    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opCube();
-    else typeError();
-
-    return node;
+BaseType *OpRecip::eval(Matrix &rhs) {
+    // todo: matrix inversion
+    typeError();
 }
 
-static struct NODE *opPower(struct NODE *node) {
-    struct NODE *right = evalNode(node->next);
+BaseType *OpSqr::eval(Number &rhs) {
+    return new Number(rhs.num * rhs.num);
+}
 
-    enum etype type = node->data.type;
-    enum etype type2 = right->data.type;
+BaseType *OpSqr::eval(Complex &rhs) {
+    // (a + bi)² = a² - b² + 2abi
+    return new Complex(rhs.real * rhs.real - rhs.imag * rhs.imag, rhs.real * rhs.imag * 2);
+}
 
-    if (type == ET_NUMBER) {
-        if (type2 == ET_NUMBER) node->data.operand.num->opPower(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.num->opPower(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.num->opPower(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.num->opPower(right->data.operand.complexList);
-        else typeError();
+BaseType *OpSqr::eval(Matrix &rhs) {
+    // todo: matrix multiplication
+    typeError();
+}
 
-        goto return_right;
-    } else if (type == ET_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.cplx->opPower(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.cplx->opPower(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.cplx->opPower(right->data.operand.list);
+BaseType *OpTrnspos::eval(Matrix &rhs) {
+    // todo: matrix transpose
+    typeError();
+}
 
-            nodeFree(node);
-            nodeFree(right);
+BaseType *OpCube::eval(Number &rhs) {
+    return new Number(rhs.num * rhs.num * rhs.num);
+}
 
-            return result;
-        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.cplx->opPower(right->data.operand.complexList);
+BaseType *OpCube::eval(Complex &rhs) {
+    // (a + bi)³ = a³ - 3ab² + (3a²b - b³)i
+    float realSqr = rhs.real * rhs.real;
+    float imagSqr = rhs.imag * rhs.imag;
 
-            goto return_right;
-        } else typeError();
-    } else if (type == ET_TEMP_LIST) {
-        if (type2 == ET_NUMBER) {
-            node->data.operand.list->opPower(right->data.operand.num);
-        } else if (type2 == ET_COMPLEX) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.list->opPower(right->data.operand.cplx);
+    return new Complex(rhs.real * (realSqr - 3 * imagSqr), rhs.imag * (3 * realSqr - imagSqr));
+}
 
-            nodeFree(node);
-            nodeFree(right);
+BaseType *OpCube::eval(Matrix &rhs) {
+    // todo: matrix multiplication
+    typeError();
+}
 
-            return result;
-        } else if (type2 == ET_TEMP_LIST) {
-            node->data.operand.list->opPower(right->data.operand.list);
+BaseType *OpFact::eval(Number &rhs) {
+    // 0! = 1
+    if (rhs.num == 0) {
+        return new Number(1);
+    }
 
-            goto return_right;
-        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.list->opPower(right->data.operand.complexList);
+    bool isNeg = rhs.num < 0;
+    float absNum = fabsf(rhs.num);
 
-            goto return_right;
-        } else {
-            typeError();
+    // The ! operator goes from -69.5 to 69.5. Everything outside that is overflow error
+    if (absNum > 69.5) overflowError();
+
+    float rem = fmodf(absNum, 1);
+    if (rem != 0 && rem != 0.5) domainError();
+
+    float result = absNum;
+    while (absNum > 0) {
+        absNum--;
+
+        if (absNum == 0) break;
+        if (absNum == -0.5) {
+            result *= 1.772453850905516;
+            break;
         }
-    } else if (type == ET_TEMP_LIST_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.complexList->opPower(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.complexList->opPower(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.complexList->opPower(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opPower(right->data.operand.complexList);
-        else typeError();
-    } else if (type == ET_TEMP_MATRIX && type2 == ET_NUMBER) {
-        node->data.operand.matrix->opPower(right->data.operand.num);
-    } else {
-        typeError();
+
+        result *= absNum;
     }
 
-    nodeFree(right);
-    return node;
+    if (isNeg) result = -result;
 
-    return_right:
-    nodeFree(node);
-    return right;
+    return new Number(result);
 }
 
-static struct NODE *opFact(struct NODE *node) {
-    enum etype type = node->data.type;
-
-    if (type == ET_NUMBER) node->data.operand.num->opFact();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opFact();
-    else typeError();
-
-    return node;
+BaseType *OpFact::eval(__attribute__((unused)) Matrix &rhs) {
+    typeError();
 }
 
-static struct NODE *opChs(struct NODE *node) {
-    enum etype type = node->data.type;
-
-    if (type == ET_NUMBER) node->data.operand.num->opChs();
-    else if (type == ET_COMPLEX) node->data.operand.cplx->opChs();
-    else if (type == ET_TEMP_LIST) node->data.operand.list->opChs();
-    else if (type == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opChs();
-    else if (type == ET_TEMP_MATRIX) node->data.operand.matrix->opChs();
-    else typeError();
-
-    return node;
+BaseType *OpChs::eval(Number &rhs) {
+    return new Number(-rhs.num);
 }
 
-static struct NODE *opMul(struct NODE *node) {
-    struct NODE *right = evalNode(node->next);
-
-    enum etype type = node->data.type;
-    enum etype type2 = right->data.type;
-
-    if (type == ET_NUMBER) {
-        if (type2 == ET_NUMBER) node->data.operand.num->opMul(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.num->opMul(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.num->opMul(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.num->opMul(right->data.operand.complexList);
-        else if (type2 == ET_TEMP_MATRIX) node->data.operand.num->opMul(right->data.operand.matrix);
-        else typeError();
-
-        goto return_right;
-    } else if (type == ET_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.cplx->opMul(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.cplx->opMul(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.cplx->opMul(right->data.operand.list);
-
-            nodeFree(node);
-            nodeFree(right);
-
-            return result;
-        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.cplx->opMul(right->data.operand.complexList);
-
-            goto return_right;
-        } else typeError();
-    } else if (type == ET_TEMP_LIST) {
-        if (type2 == ET_NUMBER) node->data.operand.list->opMul(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.list->opMul(right->data.operand.cplx);
-
-            nodeFree(node);
-            nodeFree(right);
-
-            return result;
-        } else if (type2 == ET_TEMP_LIST) node->data.operand.list->opMul(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.list->opMul(right->data.operand.complexList);
-
-            goto return_right;
-        } else typeError();
-    } else if (type == ET_TEMP_LIST_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.complexList->opMul(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.complexList->opMul(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.complexList->opMul(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opMul(right->data.operand.complexList);
-        else typeError();
-    } else if (type == ET_TEMP_MATRIX) {
-        if (type2 == ET_NUMBER) node->data.operand.matrix->opMul(right->data.operand.num);
-        else if (type2 == ET_TEMP_MATRIX) node->data.operand.matrix->opMul(right->data.operand.matrix);
-        else typeError();
-    } else {
-        typeError();
-    }
-
-    nodeFree(right);
-    return node;
-
-    return_right:
-    nodeFree(node);
-    return right;
+BaseType *OpChs::eval(Complex &rhs) {
+    return new Complex(-rhs.real, -rhs.imag);
 }
 
-static struct NODE *opAdd(struct NODE *node) {
-    struct NODE *right = evalNode(node->next);
-
-    enum etype type = node->data.type;
-    enum etype type2 = right->data.type;
-
-    if (type == ET_NUMBER) {
-        if (type2 == ET_NUMBER) node->data.operand.num->opAdd(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.num->opAdd(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.num->opAdd(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.num->opAdd(right->data.operand.complexList);
-        else if (type2 == ET_TEMP_MATRIX) node->data.operand.num->opAdd(right->data.operand.matrix);
-        else typeError();
-
-        goto return_right;
-    } else if (type == ET_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.cplx->opAdd(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.cplx->opAdd(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.cplx->opAdd(right->data.operand.list);
-
-            nodeFree(node);
-            nodeFree(right);
-
-            return result;
-        } else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.cplx->opAdd(right->data.operand.complexList);
-
-            goto return_right;
-        } else typeError();
-    } else if (type == ET_TEMP_LIST) {
-        if (type2 == ET_NUMBER) node->data.operand.list->opAdd(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) {
-            auto result = new NODE();
-            result->data.type = ET_TEMP_LIST_COMPLEX;
-            result->data.operand.complexList = node->data.operand.list->opAdd(right->data.operand.cplx);
-
-            nodeFree(node);
-            nodeFree(right);
-
-            return result;
-        } else if (type2 == ET_TEMP_LIST) node->data.operand.list->opAdd(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) {
-            node->data.operand.list->opAdd(right->data.operand.complexList);
-
-            goto return_right;
-        } else typeError();
-    } else if (type == ET_TEMP_LIST_COMPLEX) {
-        if (type2 == ET_NUMBER) node->data.operand.complexList->opAdd(right->data.operand.num);
-        else if (type2 == ET_COMPLEX) node->data.operand.complexList->opAdd(right->data.operand.cplx);
-        else if (type2 == ET_TEMP_LIST) node->data.operand.complexList->opAdd(right->data.operand.list);
-        else if (type2 == ET_TEMP_LIST_COMPLEX) node->data.operand.complexList->opAdd(right->data.operand.complexList);
-        else typeError();
-    } else if (type == ET_TEMP_MATRIX) {
-        if (type2 == ET_NUMBER) node->data.operand.matrix->opAdd(right->data.operand.num);
-        else if (type2 == ET_TEMP_MATRIX) node->data.operand.matrix->opAdd(right->data.operand.matrix);
-        else typeError();
-    } else {
-        typeError();
-    }
-
-    nodeFree(right);
-    return node;
-
-    return_right:
-    nodeFree(node);
-    return right;
-}
-
-struct NODE *evalOperator(struct NODE *node) {
+BaseType *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
-    struct NODE *leftNode = evalNode(node->child);
-    struct NODE *result;
+    BaseType *leftNode = evalNode(node->child);
+    // BaseType *rightNode = nullptr;
+    BaseType *result = nullptr;
 
-    leftNode->next = node->child->next;
+    if (isUnaryOp(getOpPrecedence(op))) {
+        Operator *opNew;
 
-    switch (op) {
-        case tFromRad:
-            result = opFromRad(leftNode);
-            break;
-        case tFromDeg:
-            result = opFromDeg(leftNode);
-            break;
-        case tRecip:
-            result = opRecip(leftNode);
-            break;
-        case tSqr:
-            result = opSqr(leftNode);
-            break;
-        case tCube:
-            result = opCube(leftNode);
-            break;
-        case tPower:
-            result = opPower(leftNode);
-            break;
-        case tFact:
-            result = opFact(leftNode);
-            break;
-        case tChs:
-            result = opChs(leftNode);
-            break;
-        case tMul:
-            result = opMul(leftNode);
-            break;
-        case tAdd:
-            result = opAdd(leftNode);
-            break;
-        default:
-            result = nullptr;
+        switch (op) {
+            case tFromRad:
+                opNew = new OpFromRad();
+                break;
+            case tFromDeg:
+                opNew = new OpFromDeg();
+                break;
+            case tRecip:
+                opNew = new OpRecip();
+                break;
+            case tSqr:
+                opNew = new OpSqr();
+                break;
+            case tTrnspos:
+                opNew = new OpTrnspos();
+                break;
+            case tCube:
+                opNew = new OpCube();
+                break;
+            case tFact:
+                opNew = new OpFact();
+                break;
+            case tChs:
+                opNew = new OpChs();
+                break;
+            default:
+                typeError();
+        }
+
+        result = leftNode->eval(*opNew);
+
+        delete opNew;
+    } else {
+        BaseType *rightNode = nullptr;
+
+        if (op == tStore) {
+        } else {
+            rightNode = evalNode(node->child->next);
+
+            switch (op) {
+                case tMul:
+                    break;
+                case tAdd:
+                    break;
+                default:
+                    result = nullptr;
+            }
+        }
     }
 
+    delete leftNode;
     free(node);
 
     return result;

@@ -7,34 +7,19 @@
 #include <tice.h>
 
 void commandDisp(struct NODE *node) {
-    struct NODE *node2;
     static char buf[27] = {0};
 
     while (node != nullptr) {
-        struct NODE *result = evalNode(node);
-        enum etype type = result->data.type;
+        BaseType *result = evalNode(node);
 
-        if (type == ET_NUMBER) {
-            sprintf(buf, "%26s", result->data.operand.num->toString());
-            fontlib_DrawString(buf);
-            fontlib_Newline();
-        } else if (type == ET_COMPLEX) {
-            sprintf(buf, "%26s", result->data.operand.cplx->toString());
-            fontlib_DrawString(buf);
-            fontlib_Newline();
-        } else if (type == ET_TEMP_LIST) {
-            sprintf(buf, "%26s", result->data.operand.list->toString());
-            fontlib_DrawString(buf);
-            fontlib_Newline();
-        } else if (type == ET_TEMP_LIST_COMPLEX) {
-            sprintf(buf, "%26s", result->data.operand.complexList->toString());
-            fontlib_DrawString(buf);
-            fontlib_Newline();
-        }
+        sprintf(buf, "%26s", result->toString());
+        fontlib_DrawString(buf);
+        fontlib_Newline();
+
+        delete result;
 
         // Get the next child
-        node2 = node->next;
-        node = node2;
+        node = node->next;
     }
 }
 

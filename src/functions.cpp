@@ -1,6 +1,6 @@
 #include "functions.h"
 #include "ast.h"
 
-struct NODE *evalFunction(struct NODE *func_node) {
-    return func_node;
+BaseType *evalFunction(struct NODE *func_node) {
+    return nullptr;
 }

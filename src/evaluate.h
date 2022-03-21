@@ -1,7 +1,9 @@
 #ifndef EVALUATE_H
 #define EVALUATE_H
 
-struct NODE *evalNode(struct NODE *node);
+#include "types.h"
+
+BaseType *evalNode(struct NODE *node);
 
 void evalNodes(struct NODE *node);
 
