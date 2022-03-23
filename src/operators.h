@@ -104,11 +104,12 @@ class OpAddSub : public BinaryOperator {
 
     BaseType *eval(Complex &lhs, Complex &rhs) override = 0;
 
+    BaseType *eval(String &lhs, String &rhs) override = 0;
+
     BaseType *eval(Matrix &lhs, Matrix &rhs) override;
 };
 
 class OpAdd : public OpAddSub {
-public:
     BaseType *eval(Number &lhs, Number &rhs) override;
 
     BaseType *eval(Number &lhs, Complex &rhs) override;
@@ -116,6 +117,8 @@ public:
     BaseType *eval(Complex &lhs, Number &rhs) override;
 
     BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(String &lhs, String &rhs) override;
 };
 
 class OpSub : public OpAddSub {
@@ -126,6 +129,74 @@ class OpSub : public OpAddSub {
     BaseType *eval(Complex &lhs, Number &rhs) override;
 
     BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(String &lhs, String &rhs) override;
+};
+
+class OpEquality : public BinaryOperator {
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Number &lhs, Matrix &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Complex &lhs, ComplexList &rhs) override;
+
+    BaseType *eval(ComplexList &lhs, Complex &rhs) override;
+
+    BaseType *eval(ComplexList &lhs, ComplexList &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Number &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpEQ : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+};
+
+class OpLT : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpGT : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpLE : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpGE : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpNE : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
 };
 
 uint8_t getOpPrecedence(uint8_t op);

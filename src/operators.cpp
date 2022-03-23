@@ -330,6 +330,11 @@ BaseType *OpAdd::eval(Complex &lhs, Complex &rhs) {
     return new Complex(lhs.real + rhs.real, lhs.imag + rhs.imag);
 }
 
+BaseType *OpAdd::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) String &rhs) {
+    // todo: string concatenation
+    typeError();
+}
+
 BaseType *OpSub::eval(Number &lhs, Number &rhs) {
     return new Number(lhs.num - rhs.num);
 }
@@ -344,6 +349,161 @@ BaseType *OpSub::eval(Complex &lhs, Number &rhs) {
 
 BaseType *OpSub::eval(Complex &lhs, Complex &rhs) {
     return new Complex(lhs.real - rhs.real, lhs.imag - rhs.imag);
+}
+
+BaseType *OpSub::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(Complex &lhs, ComplexList &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Number>(rhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &cplx : rhs.elements) {
+        newElements[index++] = dynamic_cast<Number &>(*this->eval(lhs, cplx));
+    }
+
+    return new List(newElements);
+}
+
+BaseType *OpEquality::eval(ComplexList &lhs, Complex &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Number>(lhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index++] = dynamic_cast<Number &>(*this->eval(cplx, rhs));
+    }
+
+    return new List(newElements);
+}
+
+BaseType *OpEquality::eval(ComplexList &lhs, ComplexList &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (rhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+
+    auto newElements = vector<Number>(lhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index] = dynamic_cast<Number &>(*this->eval(cplx, rhs.elements[index]));
+        index++;
+    }
+
+    return new List(newElements);
+}
+
+BaseType *OpEquality::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
+BaseType *OpEquality::eval(Matrix &lhs, Matrix &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+    if (lhs.elements[0].size() != rhs.elements[0].size()) dimensionMismatch();
+
+    unsigned int rowIndex = 0;
+    for (auto &row : lhs.elements) {
+        unsigned int colIndex = 0;
+        for (auto &col : row) {
+            auto result = dynamic_cast<Number &>(*this->eval(col, rhs.elements[rowIndex][colIndex]));
+
+            if (result.num == 0) return new Number(0);
+
+            colIndex++;
+        }
+
+        rowIndex++;
+    }
+
+    return new Number(1);
+}
+
+BaseType *OpEQ::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num == rhs.num);
+}
+
+BaseType *OpEQ::eval(Complex &lhs, Complex &rhs) {
+    return new Number(lhs.real == rhs.real && lhs.imag == rhs.imag);
+}
+
+BaseType *OpLT::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num < rhs.num);
+}
+
+BaseType *OpLT::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpLT::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpGT::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num > rhs.num);
+}
+
+BaseType *OpGT::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpGT::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpLE::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num < rhs.num);
+}
+
+BaseType *OpLE::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpLE::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpGE::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num > rhs.num);
+}
+
+BaseType *OpGE::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpGE::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpNE::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num != rhs.num);
+}
+
+BaseType *OpNE::eval(Complex &lhs, Complex &rhs) {
+    return new Number(lhs.real != rhs.real || lhs.imag != rhs.imag);
 }
 
 BaseType *evalOperator(struct NODE *node) {
@@ -411,6 +571,24 @@ BaseType *evalOperator(struct NODE *node) {
                     break;
                 case tSub:
                     opNew = new OpSub();
+                    break;
+                case tEQ:
+                    opNew = new OpEQ();
+                    break;
+                case tLT:
+                    opNew = new OpLT();
+                    break;
+                case tGT:
+                    opNew = new OpGT();
+                    break;
+                case tLE:
+                    opNew = new OpLE();
+                    break;
+                case tGE:
+                    opNew = new OpGE();
+                    break;
+                case tNE:
+                    opNew = new OpNE();
                     break;
                 default:
                     typeError();
