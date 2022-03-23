@@ -21,7 +21,7 @@ char *formatNum(float num) {
     // problem is that printf() masks the value as an int. Since integers on the ez80 can only get up to 0x7FFFFF,
     // everything above 0x800000 gets displayed as trash. That's why numbers above 1e6 are now required to display an
     // exponent. See https://github.com/CE-Programming/toolchain/issues/367 for more information.
-    bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e6 || num < -1e6 || (num > -1e-3 && num < 1e-3));
+    bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e6 || num < -1e6 || (num > -1e-3 && num < 1e-3 && num != 0));
 
     // We could have used a very simple routine and let the OS handle it. Something like this would work:
     //
@@ -33,14 +33,19 @@ char *formatNum(float num) {
     // If necessary, get the right exponent and make sure the number is properly set
     if (needExp) {
         absNum = fabsf(num);
-        exp = (int)log10f(absNum);
 
-        if (globals.normalSciEngMode == ENG_MODE) {
-            if (exp < 0) exp -= 3;
-            exp = exp / 3 * 3;
+        if (num == 0) {
+            exp = 0;
+        } else {
+            exp = (int) log10f(absNum);
+
+            if (globals.normalSciEngMode == ENG_MODE) {
+                if (exp < 0) exp -= 3;
+                exp = exp / 3 * 3;
+            }
+
+            num /= powf(10, (float)exp);
         }
-
-        num /= powf(10, (float)exp);
     }
 
     // Do format the number
