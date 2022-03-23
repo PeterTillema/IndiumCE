@@ -3,6 +3,7 @@
 #include "errors.h"
 #include "evaluate.h"
 #include "globals.h"
+#include "main.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -355,10 +356,6 @@ BaseType *OpSub::eval(__attribute__((unused)) String &lhs, __attribute__((unused
     typeError();
 }
 
-BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Number &rhs) {
-    typeError();
-}
-
 BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Complex &rhs) {
     typeError();
 }
@@ -368,10 +365,6 @@ BaseType *OpEquality::eval(__attribute__((unused)) Number &lhs, __attribute__((u
 }
 
 BaseType *OpEquality::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Number &rhs) {
-    typeError();
-}
-
-BaseType *OpEquality::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
     typeError();
 }
 
@@ -506,6 +499,26 @@ BaseType *OpNE::eval(Complex &lhs, Complex &rhs) {
     return new Number(lhs.real != rhs.real || lhs.imag != rhs.imag);
 }
 
+BaseType *OpLogically::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *OpLogically::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpAnd::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num != 0 && rhs.num != 0);
+}
+
+BaseType *OpOr::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num != 0 || rhs.num != 0);
+}
+
+BaseType *OpXor::eval(Number &lhs, Number &rhs) {
+    return new Number((lhs.num != 0) != (rhs.num != 0));
+}
+
 BaseType *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
     BaseType *leftNode = evalNode(node->child);
@@ -546,7 +559,6 @@ BaseType *evalOperator(struct NODE *node) {
         result = leftNode->eval(*opNew);
 
         delete opNew;
-        delete leftNode;
     } else {
         BaseType *rightNode;
         BinaryOperator *opNew;
@@ -590,6 +602,15 @@ BaseType *evalOperator(struct NODE *node) {
                 case tNE:
                     opNew = new OpNE();
                     break;
+                case tAnd:
+                    opNew = new OpAnd();
+                    break;
+                case tOr:
+                    opNew = new OpOr();
+                    break;
+                case tXor:
+                    opNew = new OpXor();
+                    break;
                 default:
                     typeError();
             }
@@ -597,10 +618,11 @@ BaseType *evalOperator(struct NODE *node) {
             result = leftNode->eval(*opNew, rightNode);
 
             delete opNew;
-            delete leftNode;
             delete rightNode;
         }
     }
+
+    delete leftNode;
 
     free(node);
 

@@ -134,7 +134,7 @@ class OpSub : public OpAddSub {
 };
 
 class OpEquality : public BinaryOperator {
-    BaseType *eval(Number &lhs, Number &rhs) override;
+    BaseType *eval(Number &lhs, Number &rhs) override = 0;
 
     BaseType *eval(Number &lhs, Complex &rhs) override;
 
@@ -142,7 +142,7 @@ class OpEquality : public BinaryOperator {
 
     BaseType *eval(Complex &lhs, Number &rhs) override;
 
-    BaseType *eval(Complex &lhs, Complex &rhs) override;
+    BaseType *eval(Complex &lhs, Complex &rhs) override = 0;
 
     BaseType *eval(Complex &lhs, ComplexList &rhs) override;
 
@@ -197,6 +197,26 @@ class OpNE : public OpEquality {
     BaseType * eval(Number &lhs, Number &rhs) override;
 
     BaseType * eval(Complex &lhs, Complex &rhs) override;
+};
+
+class OpLogically : public OpEquality {
+    BaseType * eval(Number &lhs, Number &rhs) override = 0;
+
+    BaseType * eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType * eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpAnd : public OpLogically {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+};
+
+class OpOr : public OpLogically {
+    BaseType * eval(Number &lhs, Number &rhs) override;
+};
+
+class OpXor : public OpLogically {
+    BaseType * eval(Number &lhs, Number &rhs) override;
 };
 
 uint8_t getOpPrecedence(uint8_t op);
