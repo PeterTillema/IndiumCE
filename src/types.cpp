@@ -19,6 +19,10 @@ Number::Number(float num) {
     this->num = num;
 }
 
+TypeType Number::type() {
+    return TypeType::NUMBER;
+}
+
 BaseType *Number::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
@@ -32,8 +36,8 @@ Complex::Complex(float real, float imag) {
     this->imag = imag;
 }
 
-BaseType *Complex::eval(UnaryOperator &op) {
-    return op.eval(*this);
+TypeType Complex::type() {
+    return TypeType::COMPLEX;
 }
 
 char *Complex::toString() const {
@@ -50,7 +54,7 @@ char *Complex::toString() const {
 
         // Eventually append a "+"
         if (real != 0) {
-            if (*numBuf == 0x0B) {
+            if (*numBuf == 0x1A) {
                 numBuf++;
                 strcat(buf, "-");
             } else {
@@ -67,6 +71,10 @@ char *Complex::toString() const {
     return buf;
 }
 
+BaseType *Complex::eval(UnaryOperator &op) {
+    return op.eval(*this);
+}
+
 BaseType *Complex::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
 }
@@ -75,12 +83,12 @@ List::List(vector<Number> &elements) {
     this->elements = elements;
 }
 
-BaseType *List::eval(UnaryOperator &op) {
-    return op.eval(*this);
-}
-
 List::~List() {
     elements.clear();
+}
+
+TypeType List::type() {
+    return TypeType::LIST;
 }
 
 char *List::toString() const {
@@ -88,7 +96,7 @@ char *List::toString() const {
 
     static char buf[40] = "{";
 
-    for (auto &number: elements) {
+    for (const auto &number: elements) {
         strcat(buf, number.toString());
         strcat(buf, " ");
 
@@ -104,6 +112,10 @@ char *List::toString() const {
     }
 
     return buf;
+}
+
+BaseType *List::eval(UnaryOperator &op) {
+    return op.eval(*this);
 }
 
 BaseType *List::eval(BinaryOperator &op, BaseType *rhs) {
@@ -114,12 +126,12 @@ ComplexList::ComplexList(const vector<Complex> &elements) {
     this->elements = elements;
 }
 
-BaseType *ComplexList::eval(UnaryOperator &op) {
-    return op.eval(*this);
-}
-
 ComplexList::~ComplexList() {
     elements.clear();
+}
+
+TypeType ComplexList::type() {
+    return TypeType::COMPLEX_LIST;
 }
 
 char *ComplexList::toString() const {
@@ -127,7 +139,7 @@ char *ComplexList::toString() const {
 
     static char buf[50] = "{";
 
-    for (auto &number: elements) {
+    for (const auto &number: elements) {
         strcat(buf, number.toString());
         strcat(buf, " ");
 
@@ -143,6 +155,10 @@ char *ComplexList::toString() const {
     }
 
     return buf;
+}
+
+BaseType *ComplexList::eval(UnaryOperator &op) {
+    return op.eval(*this);
 }
 
 BaseType *ComplexList::eval(BinaryOperator &op, BaseType *rhs) {
@@ -154,10 +170,6 @@ String::String(unsigned int length, char *string) {
     this->string = string;
 }
 
-BaseType *String::eval(UnaryOperator &op) {
-    return op.eval(*this);
-}
-
 String::~String() {
     delete string;
 }
@@ -165,6 +177,14 @@ String::~String() {
 char *String::toString() const {
     // todo
     typeError();
+}
+
+TypeType String::type() {
+    return TypeType::STRING;
+}
+
+BaseType *String::eval(UnaryOperator &op) {
+    return op.eval(*this);
 }
 
 BaseType *String::eval(BinaryOperator &op, BaseType *rhs) {
@@ -175,10 +195,6 @@ Matrix::Matrix(vector<vector<Number>> &elements) {
     this->elements = elements;
 }
 
-BaseType *Matrix::eval(UnaryOperator &op) {
-    return op.eval(*this);
-}
-
 Matrix::~Matrix() {
     elements.clear();
 }
@@ -186,6 +202,14 @@ Matrix::~Matrix() {
 char *Matrix::toString() const {
     // todo
     typeError();
+}
+
+TypeType Matrix::type() {
+    return TypeType::MATRIX;
+}
+
+BaseType *Matrix::eval(UnaryOperator &op) {
+    return op.eval(*this);
 }
 
 BaseType *Matrix::eval(BinaryOperator &op, BaseType *rhs) {
@@ -205,9 +229,8 @@ BaseType *UnaryOperator::eval(List &rhs) {
 
     auto newElements = vector<Number>(rhs.elements.size());
 
-    unsigned int index = 0;
-    for (auto &number : rhs.elements) {
-        newElements[index++] = dynamic_cast<Number &>(*this->eval(number));
+    for (auto &number : newElements) {
+        number = dynamic_cast<Number &>(*this->eval(number));
     }
 
     return new List(newElements);
@@ -218,9 +241,8 @@ BaseType *UnaryOperator::eval(ComplexList &rhs) {
 
     auto newElements = vector<Complex>(rhs.elements.size());
 
-    unsigned int index = 0;
-    for (auto &cplx : rhs.elements) {
-        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(cplx));
     }
 
     return new ComplexList(newElements);
@@ -235,33 +257,29 @@ BaseType *UnaryOperator::eval(Matrix &rhs) {
 
     auto newElements = rhs.elements;
 
-    unsigned int rowIndex = 0;
-    for (auto &row : rhs.elements) {
-        unsigned int colIndex = 0;
-
+    for (auto &row : newElements) {
         for (auto &col : row) {
-            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(col));
-            colIndex++;
+            col = dynamic_cast<Number &>(*this->eval(col));
         }
-        rowIndex++;
     }
 
     return new Matrix(newElements);
 }
 
 BaseType *BinaryOperator::eval(Number &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 
@@ -278,9 +296,8 @@ BaseType *BinaryOperator::eval(Number &lhs, List &rhs) {
 
     auto newElements = rhs.elements;
 
-    unsigned int index = 0;
-    for (auto &&number : rhs.elements) {
-        newElements[index++] = dynamic_cast<Number &>(*this->eval(lhs, number));
+    for (auto &number : newElements) {
+        number = dynamic_cast<Number &>(*this->eval(lhs, number));
     }
 
     return new List(newElements);
@@ -291,9 +308,8 @@ BaseType *BinaryOperator::eval(Number &lhs, ComplexList &rhs) {
 
     auto newElements = rhs.elements;
 
-    unsigned int index = 0;
-    for (auto &cplx : rhs.elements) {
-        newElements[index++] = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
     }
 
     return new ComplexList(newElements);
@@ -308,33 +324,29 @@ BaseType *BinaryOperator::eval(Number &lhs, Matrix &rhs) {
 
     auto newElements = rhs.elements;
 
-    unsigned int rowIndex = 0;
-    for (auto &row : rhs.elements) {
-        unsigned int colIndex = 0;
-
+    for (auto &row : newElements) {
         for (auto &col : row) {
-            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(lhs, col));
-            colIndex++;
+            col = dynamic_cast<Number &>(*this->eval(lhs, col));
         }
-        rowIndex++;
     }
 
     return new Matrix(newElements);
 }
 
 BaseType *BinaryOperator::eval(Complex &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 
@@ -353,7 +365,7 @@ BaseType *BinaryOperator::eval(Complex &lhs, List &rhs) {
 
     unsigned int index = 0;
     for (auto &number : rhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(lhs, number));
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(lhs, number));
     }
 
     return new ComplexList(newElements);
@@ -362,11 +374,10 @@ BaseType *BinaryOperator::eval(Complex &lhs, List &rhs) {
 BaseType *BinaryOperator::eval(Complex &lhs, ComplexList &rhs) {
     if (rhs.elements.empty()) dimensionError();
 
-    auto newElements = vector<Complex>(rhs.elements.size());
+    auto newElements = rhs.elements;
 
-    unsigned int index = 0;
-    for (auto &cplx : rhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
     }
 
     return new ComplexList(newElements);
@@ -381,18 +392,19 @@ BaseType *BinaryOperator::eval(__attribute__((unused)) Complex &lhs, __attribute
 }
 
 BaseType *BinaryOperator::eval(List &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 
@@ -401,9 +413,8 @@ BaseType *BinaryOperator::eval(List &lhs, Number &rhs) {
 
     auto newElements = lhs.elements;
 
-    unsigned int index = 0;
-    for (auto &number : lhs.elements) {
-        newElements[index++] = dynamic_cast<Number &>(*this->eval(number, rhs));
+    for (auto &number : newElements) {
+        number = dynamic_cast<Number &>(*this->eval(number, rhs));
     }
 
     return new List(newElements);
@@ -416,7 +427,7 @@ BaseType *BinaryOperator::eval(List &lhs, Complex &rhs) {
 
     unsigned int index = 0;
     for (auto &number : lhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(number, rhs));
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(number, rhs));
     }
 
     return new ComplexList(newElements);
@@ -429,8 +440,8 @@ BaseType *BinaryOperator::eval(List &lhs, List &rhs) {
     auto newElements = lhs.elements;
 
     unsigned int index = 0;
-    for (auto &number : lhs.elements) {
-        newElements[index] = dynamic_cast<Number &>(*this->eval(number, rhs.elements[index]));
+    for (auto &number : newElements) {
+        number = dynamic_cast<Number &>(*this->eval(number, rhs.elements[index]));
         index++;
     }
 
@@ -444,8 +455,8 @@ BaseType *BinaryOperator::eval(List &lhs, ComplexList &rhs) {
     auto newElements = rhs.elements;
 
     unsigned int index = 0;
-    for (auto &number : lhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(number, rhs.elements[index]));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(lhs.elements[index], cplx));
         index++;
     }
 
@@ -461,18 +472,19 @@ BaseType *BinaryOperator::eval(__attribute__((unused)) List &lhs, __attribute__(
 }
 
 BaseType *BinaryOperator::eval(ComplexList &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 
@@ -481,9 +493,8 @@ BaseType *BinaryOperator::eval(ComplexList &lhs, Number &rhs) {
 
     auto newElements = lhs.elements;
 
-    unsigned int index = 0;
-    for (auto &cplx : lhs.elements) {
-        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
     }
 
     return new ComplexList(newElements);
@@ -494,9 +505,8 @@ BaseType *BinaryOperator::eval(ComplexList &lhs, Complex &rhs) {
 
     auto newElements = lhs.elements;
 
-    unsigned int index = 0;
-    for (auto &cplx : lhs.elements) {
-        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
     }
 
     return new ComplexList(newElements);
@@ -509,8 +519,8 @@ BaseType *BinaryOperator::eval(ComplexList &lhs, List &rhs) {
     auto newElements = lhs.elements;
 
     unsigned int index = 0;
-    for (auto &cplx : lhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
         index++;
     }
 
@@ -524,8 +534,8 @@ BaseType *BinaryOperator::eval(ComplexList &lhs, ComplexList &rhs) {
     auto newElements = lhs.elements;
 
     unsigned int index = 0;
-    for (auto &cplx : lhs.elements) {
-        newElements[index] = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
+    for (auto &cplx : newElements) {
+        cplx = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
         index++;
     }
 
@@ -541,18 +551,19 @@ BaseType *BinaryOperator::eval(__attribute__((unused)) ComplexList &lhs, __attri
 }
 
 BaseType *BinaryOperator::eval(String &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 
@@ -581,18 +592,19 @@ BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute_
 }
 
 BaseType *BinaryOperator::eval(Matrix &lhs, BaseType &rhs) {
-    if (&dynamic_cast<Number &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Number &>(rhs));
-    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
-    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<List &>(rhs));
-    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
-    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
-        return this->eval(lhs, dynamic_cast<String &>(rhs));
-    } else {
-        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    switch (rhs.type()) {
+        case TypeType::NUMBER:
+            return this->eval(lhs, dynamic_cast<Number &>(rhs));
+        case TypeType::COMPLEX:
+            return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+        case TypeType::LIST:
+            return this->eval(lhs, dynamic_cast<List &>(rhs));
+        case TypeType::COMPLEX_LIST:
+            return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+        case TypeType::STRING:
+            return this->eval(lhs, dynamic_cast<String &>(rhs));
+        case TypeType::MATRIX:
+            return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
     }
 }
 BaseType *BinaryOperator::eval(Matrix &lhs, Number &rhs) {
@@ -600,15 +612,10 @@ BaseType *BinaryOperator::eval(Matrix &lhs, Number &rhs) {
 
     auto newElements = lhs.elements;
 
-    unsigned int rowIndex = 0;
-    for (auto &row : lhs.elements) {
-        unsigned int colIndex = 0;
-
+    for (auto &row : newElements) {
         for (auto &col : row) {
-            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(col, rhs));
-            colIndex++;
+            col = dynamic_cast<Number &>(*this->eval(col, rhs));
         }
-        rowIndex++;
     }
 
     return new Matrix(newElements);

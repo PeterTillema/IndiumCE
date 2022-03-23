@@ -170,6 +170,60 @@ BaseType *OpChs::eval(Complex &rhs) {
     return new Complex(-rhs.real, -rhs.imag);
 }
 
+BaseType *OpAddSub::eval(Matrix &lhs, Matrix &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+    if (lhs.elements[0].size() != rhs.elements[0].size()) dimensionMismatch();
+
+    auto newElements = lhs.elements;
+
+    unsigned int rowIndex = 0;
+    for (auto &row : newElements) {
+        unsigned int colIndex = 0;
+
+        for (auto &col : row) {
+            col = dynamic_cast<Number &>(*this->eval(col, rhs.elements[rowIndex][colIndex]));
+            colIndex++;
+        }
+
+        rowIndex++;
+    }
+
+    return new Matrix(newElements);
+}
+
+BaseType *OpAdd::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num + rhs.num);
+}
+
+BaseType *OpAdd::eval(Number &lhs, Complex &rhs) {
+    return new Complex(lhs.num + rhs.real, rhs.imag);
+}
+
+BaseType *OpAdd::eval(Complex &lhs, Number &rhs) {
+    return new Complex(lhs.real + rhs.num, lhs.imag);
+}
+
+BaseType *OpAdd::eval(Complex &lhs, Complex &rhs) {
+    return new Complex(lhs.real + rhs.real, lhs.imag + rhs.imag);
+}
+
+BaseType *OpSub::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num - rhs.num);
+}
+
+BaseType *OpSub::eval(Number &lhs, Complex &rhs) {
+    return new Complex(lhs.num - rhs.real, -rhs.imag);
+}
+
+BaseType *OpSub::eval(Complex &lhs, Number &rhs) {
+    return new Complex(lhs.real - rhs.num, lhs.imag);
+}
+
+BaseType *OpSub::eval(Complex &lhs, Complex &rhs) {
+    return new Complex(lhs.real - rhs.real, lhs.imag - rhs.imag);
+}
+
 BaseType *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
     BaseType *leftNode = evalNode(node->child);
@@ -212,22 +266,31 @@ BaseType *evalOperator(struct NODE *node) {
         delete opNew;
         delete leftNode;
     } else {
-        /*BaseType *rightNode = nullptr;
+        BaseType *rightNode;
+        BinaryOperator *opNew;
 
         if (op == tStore) {
+            typeError();
         } else {
             rightNode = evalNode(node->child->next);
 
             switch (op) {
-                case tMul:
-                    break;
                 case tAdd:
+                    opNew = new OpAdd();
+                    break;
+                case tSub:
+                    opNew = new OpSub();
                     break;
                 default:
-                    result = nullptr;
+                    typeError();
             }
-        }*/
-        typeError();
+
+            result = leftNode->eval(*opNew, rightNode);
+
+            delete opNew;
+            delete leftNode;
+            delete rightNode;
+        }
     }
 
     free(node);

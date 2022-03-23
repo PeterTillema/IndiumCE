@@ -23,6 +23,13 @@ char *formatNum(float num) {
     // exponent. See https://github.com/CE-Programming/toolchain/issues/367 for more information.
     bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e6 || num < -1e6 || (num > -1e-3 && num < 1e-3));
 
+    // We could have used a very simple routine and let the OS handle it. Something like this would work:
+    //
+    //  real_t tmp_real = os_FloatToReal(num);
+    //  os_RealToStr(buf, &tmp_real, ...)
+    //
+    // However, testing turns out that there are huge rounding errors, so let's still use our custom routine.
+
     // If necessary, get the right exponent and make sure the number is properly set
     if (needExp) {
         absNum = fabsf(num);

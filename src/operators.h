@@ -55,6 +55,39 @@ class OpChs : public UnaryOperator {
     BaseType *eval(Complex &rhs) override;
 };
 
+class OpAddSub : public BinaryOperator {
+    BaseType *eval(Number &lhs, Number &rhs) override = 0;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override = 0;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override = 0;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override = 0;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpAdd : public OpAddSub {
+public:
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+};
+
+class OpSub : public OpAddSub {
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+};
+
 uint8_t getOpPrecedence(uint8_t op);
 
 bool isUnaryOp(uint8_t prec);

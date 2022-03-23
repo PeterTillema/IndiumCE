@@ -12,6 +12,10 @@ class UnaryOperator;
 
 class BinaryOperator;
 
+enum class TypeType {
+    NUMBER, COMPLEX, LIST, COMPLEX_LIST, STRING, MATRIX
+};
+
 class BaseType {
 public:
     virtual ~BaseType() = default;
@@ -21,6 +25,8 @@ public:
     virtual BaseType *eval(UnaryOperator &op) = 0;
 
     virtual BaseType *eval(BinaryOperator &op, BaseType *rhs) = 0;
+
+    virtual TypeType type() = 0;
 };
 
 class Number : public BaseType {
@@ -32,6 +38,8 @@ public:
     explicit Number(float num);
 
     ~Number() override = default;
+
+    TypeType type() override;
 
     char *toString() const override;
 
@@ -51,6 +59,8 @@ public:
 
     ~Complex() override = default;
 
+    TypeType type() override;
+
     char *toString() const override;
 
     BaseType *eval(UnaryOperator &op) override;
@@ -66,6 +76,8 @@ public:
 
     ~List() override;
 
+    TypeType type() override;
+
     char *toString() const override;
 
     BaseType *eval(UnaryOperator &op) override;
@@ -80,6 +92,8 @@ public:
     explicit ComplexList(const vector<Complex> &elements);
 
     ~ComplexList() override;
+
+    TypeType type() override;
 
     char *toString() const override;
 
@@ -97,6 +111,8 @@ public:
 
     ~String() override;
 
+    TypeType type() override;
+
     char *toString() const override;
 
     BaseType *eval(UnaryOperator &op) override;
@@ -111,6 +127,8 @@ public:
     explicit Matrix(vector<vector<Number>> &elements);
 
     ~Matrix() override;
+
+    TypeType type() override;
 
     char *toString() const override;
 
@@ -140,89 +158,89 @@ class BinaryOperator {
 public:
     virtual ~BinaryOperator() = default;
 
-    BaseType *eval(Number &lhs, BaseType &rhs);
+    virtual BaseType *eval(Number &lhs, BaseType &rhs);
 
-    BaseType *eval(Number &lhs, Number &rhs);
+    virtual BaseType *eval(Number &lhs, Number &rhs);
 
-    BaseType *eval(Number &lhs, Complex &rhs);
+    virtual BaseType *eval(Number &lhs, Complex &rhs);
 
-    BaseType *eval(Number &lhs, List &rhs);
+    virtual BaseType *eval(Number &lhs, List &rhs);
 
-    BaseType *eval(Number &lhs, ComplexList &rhs);
+    virtual BaseType *eval(Number &lhs, ComplexList &rhs);
 
-    BaseType *eval(Number &lhs, String &rhs);
+    virtual BaseType *eval(Number &lhs, String &rhs);
 
-    BaseType *eval(Number &lhs, Matrix &rhs);
+    virtual BaseType *eval(Number &lhs, Matrix &rhs);
 
-    BaseType *eval(Complex &lhs, BaseType &rhs);
+    virtual BaseType *eval(Complex &lhs, BaseType &rhs);
 
-    BaseType *eval(Complex &lhs, Number &rhs);
+    virtual BaseType *eval(Complex &lhs, Number &rhs);
 
-    BaseType *eval(Complex &lhs, Complex &rhs);
+    virtual BaseType *eval(Complex &lhs, Complex &rhs);
 
-    BaseType *eval(Complex &lhs, List &rhs);
+    virtual BaseType *eval(Complex &lhs, List &rhs);
 
-    BaseType *eval(Complex &lhs, ComplexList &rhs);
+    virtual BaseType *eval(Complex &lhs, ComplexList &rhs);
 
-    BaseType *eval(Complex &lhs, String &rhs);
+    virtual BaseType *eval(Complex &lhs, String &rhs);
 
-    BaseType *eval(Complex &lhs, Matrix &rhs);
+    virtual BaseType *eval(Complex &lhs, Matrix &rhs);
 
-    BaseType *eval(List &lhs, BaseType &rhs);
+    virtual BaseType *eval(List &lhs, BaseType &rhs);
 
-    BaseType *eval(List &lhs, Number &rhs);
+    virtual BaseType *eval(List &lhs, Number &rhs);
 
-    BaseType *eval(List &lhs, Complex &rhs);
+    virtual BaseType *eval(List &lhs, Complex &rhs);
 
-    BaseType *eval(List &lhs, List &rhs);
+    virtual BaseType *eval(List &lhs, List &rhs);
 
-    BaseType *eval(List &lhs, ComplexList &rhs);
+    virtual BaseType *eval(List &lhs, ComplexList &rhs);
 
-    BaseType *eval(List &lhs, String &rhs);
+    virtual BaseType *eval(List &lhs, String &rhs);
 
-    BaseType *eval(List &lhs, Matrix &rhs);
+    virtual BaseType *eval(List &lhs, Matrix &rhs);
 
-    BaseType *eval(ComplexList &lhs, BaseType &rhs);
+    virtual BaseType *eval(ComplexList &lhs, BaseType &rhs);
 
-    BaseType *eval(ComplexList &lhs, Number &rhs);
+    virtual BaseType *eval(ComplexList &lhs, Number &rhs);
 
-    BaseType *eval(ComplexList &lhs, Complex &rhs);
+    virtual BaseType *eval(ComplexList &lhs, Complex &rhs);
 
-    BaseType *eval(ComplexList &lhs, List &rhs);
+    virtual BaseType *eval(ComplexList &lhs, List &rhs);
 
-    BaseType *eval(ComplexList &lhs, ComplexList &rhs);
+    virtual BaseType *eval(ComplexList &lhs, ComplexList &rhs);
 
-    BaseType *eval(ComplexList &lhs, String &rhs);
+    virtual BaseType *eval(ComplexList &lhs, String &rhs);
 
-    BaseType *eval(ComplexList &lhs, Matrix &rhs);
+    virtual BaseType *eval(ComplexList &lhs, Matrix &rhs);
 
-    BaseType *eval(String &lhs, BaseType &rhs);
+    virtual BaseType *eval(String &lhs, BaseType &rhs);
 
-    BaseType *eval(String &lhs, Number &rhs);
+    virtual BaseType *eval(String &lhs, Number &rhs);
 
-    BaseType *eval(String &lhs, Complex &rhs);
+    virtual BaseType *eval(String &lhs, Complex &rhs);
 
-    BaseType *eval(String &lhs, List &rhs);
+    virtual BaseType *eval(String &lhs, List &rhs);
 
-    BaseType *eval(String &lhs, ComplexList &rhs);
+    virtual BaseType *eval(String &lhs, ComplexList &rhs);
 
-    BaseType *eval(String &lhs, String &rhs);
+    virtual BaseType *eval(String &lhs, String &rhs);
 
-    BaseType *eval(String &lhs, Matrix &rhs);
+    virtual BaseType *eval(String &lhs, Matrix &rhs);
 
-    BaseType *eval(Matrix &lhs, BaseType &rhs);
+    virtual BaseType *eval(Matrix &lhs, BaseType &rhs);
 
-    BaseType *eval(Matrix &lhs, Number &rhs);
+    virtual BaseType *eval(Matrix &lhs, Number &rhs);
 
-    BaseType *eval(Matrix &lhs, Complex &rhs);
+    virtual BaseType *eval(Matrix &lhs, Complex &rhs);
 
-    BaseType *eval(Matrix &lhs, List &rhs);
+    virtual BaseType *eval(Matrix &lhs, List &rhs);
 
-    BaseType *eval(Matrix &lhs, ComplexList &rhs);
+    virtual BaseType *eval(Matrix &lhs, ComplexList &rhs);
 
-    BaseType *eval(Matrix &lhs, String &rhs);
+    virtual BaseType *eval(Matrix &lhs, String &rhs);
 
-    BaseType *eval(Matrix &lhs, Matrix &rhs);
+    virtual BaseType *eval(Matrix &lhs, Matrix &rhs);
 };
 
 

@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     fontlib_font_t *font = fontlib_GetFontByIndex("OSLFONT", 0);
     if (font == nullptr) {
         gfx_PrintStringXY("Large font not found. Please transfer the", 1, 12);
-        gfx_PrintStringXY("right appvar to this calculator!", 1, 21);
+        gfx_PrintStringXY("right appvars to this calculator!", 1, 21);
 
         forceExit();
     }
