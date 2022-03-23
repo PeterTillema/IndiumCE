@@ -2,6 +2,7 @@
 #include "errors.h"
 #include "utils.h"
 
+#include <cstring>
 #include <TINYSTL/vector.h>
 
 using tinystl::vector;
@@ -18,8 +19,12 @@ Number::Number(float num) {
     this->num = num;
 }
 
-BaseType *Number::eval(Operator &op) {
+BaseType *Number::eval(UnaryOperator &op) {
     return op.eval(*this);
+}
+
+BaseType *Number::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
 }
 
 Complex::Complex(float real, float imag) {
@@ -27,15 +32,50 @@ Complex::Complex(float real, float imag) {
     this->imag = imag;
 }
 
-BaseType *Complex::eval(Operator &op) {
+BaseType *Complex::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
 
-List::List(vector<Number *> &elements) {
+char *Complex::toString() const {
+    static char buf[25];
+    char *numBuf;
+
+    if (real != 0) {
+        numBuf = formatNum(real);
+        strcpy(buf, numBuf);
+    }
+
+    if (imag != 0) {
+        numBuf = formatNum(imag);
+
+        // Eventually append a "+"
+        if (real != 0) {
+            if (*numBuf == 0x0B) {
+                numBuf++;
+                strcat(buf, "-");
+            } else {
+                strcat(buf, "+");
+            }
+        }
+
+        // Only append if it's not a single "1"
+        if (strlen(numBuf) != 1 || *numBuf != '1') strcat(buf, numBuf);
+
+        strcat(buf, "\xD7");
+    }
+
+    return buf;
+}
+
+BaseType *Complex::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
+}
+
+List::List(vector<Number> &elements) {
     this->elements = elements;
 }
 
-BaseType *List::eval(Operator &op) {
+BaseType *List::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
 
@@ -43,11 +83,38 @@ List::~List() {
     elements.clear();
 }
 
-ComplexList::ComplexList(const vector<Complex *> &elements) {
+char *List::toString() const {
+    if (elements.empty()) dimensionError();
+
+    static char buf[40] = "{";
+
+    for (auto &number: elements) {
+        strcat(buf, number.toString());
+        strcat(buf, " ");
+
+        if (strlen(buf) > 26) break;
+    }
+
+    if (strlen(buf) > 25) {
+        buf[24] = ' ';
+        buf[25] = 0x0F;
+    } else {
+        // Overwrite space with closing bracket
+        buf[strlen(buf) - 1] = '}';
+    }
+
+    return buf;
+}
+
+BaseType *List::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
+}
+
+ComplexList::ComplexList(const vector<Complex> &elements) {
     this->elements = elements;
 }
 
-BaseType *ComplexList::eval(Operator &op) {
+BaseType *ComplexList::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
 
@@ -55,12 +122,39 @@ ComplexList::~ComplexList() {
     elements.clear();
 }
 
+char *ComplexList::toString() const {
+    if (elements.empty()) dimensionError();
+
+    static char buf[50] = "{";
+
+    for (auto &number: elements) {
+        strcat(buf, number.toString());
+        strcat(buf, " ");
+
+        if (strlen(buf) > 26) break;
+    }
+
+    if (strlen(buf) > 25) {
+        buf[24] = ' ';
+        buf[25] = 0x0F;
+    } else {
+        // Overwrite space with closing bracket
+        buf[strlen(buf) - 1] = '}';
+    }
+
+    return buf;
+}
+
+BaseType *ComplexList::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
+}
+
 String::String(unsigned int length, char *string) {
     this->length = length;
     this->string = string;
 }
 
-BaseType *String::eval(Operator &op) {
+BaseType *String::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
 
@@ -68,11 +162,20 @@ String::~String() {
     delete string;
 }
 
-Matrix::Matrix(vector<vector<Number *>> &elements) {
+char *String::toString() const {
+    // todo
+    typeError();
+}
+
+BaseType *String::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
+}
+
+Matrix::Matrix(vector<vector<Number>> &elements) {
     this->elements = elements;
 }
 
-BaseType *Matrix::eval(Operator &op) {
+BaseType *Matrix::eval(UnaryOperator &op) {
     return op.eval(*this);
 }
 
@@ -80,43 +183,56 @@ Matrix::~Matrix() {
     elements.clear();
 }
 
-BaseType *Operator::eval(__attribute__((unused)) Number &rhs) {
+char *Matrix::toString() const {
+    // todo
     typeError();
 }
 
-BaseType *Operator::eval(__attribute__((unused)) Complex &rhs) {
+BaseType *Matrix::eval(BinaryOperator &op, BaseType *rhs) {
+    return op.eval(*this, *rhs);
+}
+
+BaseType *UnaryOperator::eval(__attribute__((unused)) Number &rhs) {
     typeError();
 }
 
-BaseType *Operator::eval(List &rhs) {
-    auto newElements = vector<Number *>(rhs.elements.size());
+BaseType *UnaryOperator::eval(__attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *UnaryOperator::eval(List &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Number>(rhs.elements.size());
 
     unsigned int index = 0;
     for (auto &number : rhs.elements) {
-        newElements[index++] = dynamic_cast<Number *>(this->eval(*number));
+        newElements[index++] = dynamic_cast<Number &>(*this->eval(number));
     }
 
     return new List(newElements);
 }
 
-BaseType *Operator::eval(ComplexList &rhs) {
+BaseType *UnaryOperator::eval(ComplexList &rhs) {
     if (rhs.elements.empty()) dimensionError();
 
-    auto newElements = vector<Complex *>(rhs.elements.size());
+    auto newElements = vector<Complex>(rhs.elements.size());
 
     unsigned int index = 0;
     for (auto &cplx : rhs.elements) {
-        newElements[index++] = dynamic_cast<Complex *>(this->eval(*cplx));
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx));
     }
 
     return new ComplexList(newElements);
 }
 
-BaseType *Operator::eval(__attribute__((unused)) String &rhs) {
+BaseType *UnaryOperator::eval(__attribute__((unused)) String &rhs) {
     typeError();
 }
 
-BaseType *Operator::eval(__attribute__((unused)) Matrix &rhs) {
+BaseType *UnaryOperator::eval(Matrix &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
     auto newElements = rhs.elements;
 
     unsigned int rowIndex = 0;
@@ -124,11 +240,398 @@ BaseType *Operator::eval(__attribute__((unused)) Matrix &rhs) {
         unsigned int colIndex = 0;
 
         for (auto &col : row) {
-            newElements[rowIndex][colIndex] = dynamic_cast<Number *>(this->eval(*col));
+            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(col));
             colIndex++;
         }
         rowIndex++;
     }
 
     return new Matrix(newElements);
+}
+
+BaseType *BinaryOperator::eval(Number &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(Number &lhs, List &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = rhs.elements;
+
+    unsigned int index = 0;
+    for (auto &&number : rhs.elements) {
+        newElements[index++] = dynamic_cast<Number &>(*this->eval(lhs, number));
+    }
+
+    return new List(newElements);
+}
+
+BaseType *BinaryOperator::eval(Number &lhs, ComplexList &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = rhs.elements;
+
+    unsigned int index = 0;
+    for (auto &cplx : rhs.elements) {
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(Number &lhs, Matrix &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = rhs.elements;
+
+    unsigned int rowIndex = 0;
+    for (auto &row : rhs.elements) {
+        unsigned int colIndex = 0;
+
+        for (auto &col : row) {
+            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(lhs, col));
+            colIndex++;
+        }
+        rowIndex++;
+    }
+
+    return new Matrix(newElements);
+}
+
+BaseType *BinaryOperator::eval(Complex &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused))Complex &lhs, __attribute__((unused))Number &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(Complex &lhs, List &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Complex>(rhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &number : rhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(lhs, number));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(Complex &lhs, ComplexList &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Complex>(rhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &cplx : rhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(lhs, cplx));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Complex &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(List &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+
+BaseType *BinaryOperator::eval(List &lhs, Number &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &number : lhs.elements) {
+        newElements[index++] = dynamic_cast<Number &>(*this->eval(number, rhs));
+    }
+
+    return new List(newElements);
+}
+
+BaseType *BinaryOperator::eval(List &lhs, Complex &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = vector<Complex>(lhs.elements.size());
+
+    unsigned int index = 0;
+    for (auto &number : lhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(number, rhs));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(List &lhs, List &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &number : lhs.elements) {
+        newElements[index] = dynamic_cast<Number &>(*this->eval(number, rhs.elements[index]));
+        index++;
+    }
+
+    return new List(newElements);
+}
+
+BaseType *BinaryOperator::eval(List &lhs, ComplexList &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+
+    auto newElements = rhs.elements;
+
+    unsigned int index = 0;
+    for (auto &number : lhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(number, rhs.elements[index]));
+        index++;
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) List &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) List &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(ComplexList &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+
+BaseType *BinaryOperator::eval(ComplexList &lhs, Number &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(ComplexList &lhs, Complex &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index++] = dynamic_cast<Complex &>(*this->eval(cplx, rhs));
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(ComplexList &lhs, List &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
+        index++;
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(ComplexList &lhs, ComplexList &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+    if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
+
+    auto newElements = lhs.elements;
+
+    unsigned int index = 0;
+    for (auto &cplx : lhs.elements) {
+        newElements[index] = dynamic_cast<Complex &>(*this->eval(cplx, rhs.elements[index]));
+        index++;
+    }
+
+    return new ComplexList(newElements);
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) ComplexList &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) ComplexList &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(String &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) List &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) ComplexList &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(Matrix &lhs, BaseType &rhs) {
+    if (&dynamic_cast<Number &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Number &>(rhs));
+    } else if (&dynamic_cast<Complex &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<Complex &>(rhs));
+    } else if (&dynamic_cast<List &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<List &>(rhs));
+    } else if (&dynamic_cast<ComplexList &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<ComplexList &>(rhs));
+    } else if (&dynamic_cast<String &>(rhs) != nullptr) {
+        return this->eval(lhs, dynamic_cast<String &>(rhs));
+    } else {
+        return this->eval(lhs, dynamic_cast<Matrix &>(rhs));
+    }
+}
+BaseType *BinaryOperator::eval(Matrix &lhs, Number &rhs) {
+    if (lhs.elements.empty()) dimensionError();
+
+    auto newElements = lhs.elements;
+
+    unsigned int rowIndex = 0;
+    for (auto &row : lhs.elements) {
+        unsigned int colIndex = 0;
+
+        for (auto &col : row) {
+            newElements[rowIndex][colIndex] = dynamic_cast<Number &>(*this->eval(col, rhs));
+            colIndex++;
+        }
+        rowIndex++;
+    }
+
+    return new Matrix(newElements);
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Complex &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) List &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) ComplexList &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) String &rhs) {
+    typeError();
+}
+
+BaseType *BinaryOperator::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    // Binary operator with 2 matrices is only the same for + and -, all the other operators are either type error
+    // or a different routine (like * and /).
+    typeError();
 }

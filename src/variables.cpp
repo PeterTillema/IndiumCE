@@ -45,10 +45,10 @@ static void handle_cplx(const char *varname, void *data) {
 static void handle_list(const char *varname, void *data) {
     auto oldList = (list_t *) data;
 
-    auto list_data = vector<Number *>(oldList->dim);
+    auto list_data = vector<Number>(oldList->dim);
 
     for (unsigned int i = 0; i < oldList->dim; i++) {
-        list_data[i] = new Number(os_RealToFloat(&oldList->items[i]));
+        list_data[i] = Number(os_RealToFloat(&oldList->items[i]));
     }
 
     if (varname[1] >= 'A') {
@@ -75,10 +75,10 @@ static void handle_list(const char *varname, void *data) {
 static void handle_list_cplx(const char *varname, void *data) {
     auto oldList = (cplx_list_t *) data;
 
-    auto list_data = vector<Complex *>(oldList->dim);
+    auto list_data = vector<Complex>(oldList->dim);
 
     for (unsigned int i = 0; i < oldList->dim; i++) {
-        list_data[i] = new Complex(os_RealToFloat(&oldList->items[i].real), os_RealToFloat(&oldList->items[i].imag));
+        list_data[i] = Complex(os_RealToFloat(&oldList->items[i].real), os_RealToFloat(&oldList->items[i].imag));
     }
 
     if (varname[1] >= 'A') {
@@ -105,12 +105,12 @@ static void handle_list_cplx(const char *varname, void *data) {
 static void handle_matrix(const char *varname, void *data) {
     auto matrix = (matrix_t *) data;
 
-    vector<vector<Number *>> matrix_data(matrix->rows, vector<Number *>(matrix->cols));
+    vector<vector<Number>> matrix_data(matrix->rows, vector<Number>(matrix->cols));
 
     unsigned int index = 0;
     for (uint8_t row = 0; row < matrix->rows; row++) {
         for (uint8_t col = 0; col < matrix->cols; col++) {
-            matrix_data[row][col] = new Number(os_RealToFloat(&matrix->items[index]));
+            matrix_data[row][col] = Number(os_RealToFloat(&matrix->items[index]));
             index++;
         }
     }

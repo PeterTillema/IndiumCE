@@ -44,7 +44,7 @@ char *formatNum(float num) {
     }
 
     // Replace minus character
-    if (*buf == '-') *buf = 0x0B;
+    if (*buf == '-') *buf = 0x1A;
 
     // Strip trailing zeroes
     char *p = buf + strlen(buf) - 1;
@@ -56,9 +56,9 @@ char *formatNum(float num) {
 
     // Add |E<exp> to the string!
     if (needExp) {
-        *(p + 1) = 0x1C;
+        *(p + 1) = 0x1B;
         sprintf(p + 2, "%d", exp);
-        if (exp < 0) *(p + 2) = 0x0B;
+        if (exp < 0) *(p + 2) = 0x1A;
     }
 
     return buf;

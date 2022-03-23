@@ -83,7 +83,7 @@ BaseType *OpRecip::eval(Complex &rhs) {
     return new Complex(rhs.real / denom, rhs.imag / -denom);
 }
 
-BaseType *OpRecip::eval(Matrix &rhs) {
+BaseType *OpRecip::eval(__attribute__((unused)) Matrix &rhs) {
     // todo: matrix inversion
     typeError();
 }
@@ -97,12 +97,12 @@ BaseType *OpSqr::eval(Complex &rhs) {
     return new Complex(rhs.real * rhs.real - rhs.imag * rhs.imag, rhs.real * rhs.imag * 2);
 }
 
-BaseType *OpSqr::eval(Matrix &rhs) {
+BaseType *OpSqr::eval(__attribute__((unused)) Matrix &rhs) {
     // todo: matrix multiplication
     typeError();
 }
 
-BaseType *OpTrnspos::eval(Matrix &rhs) {
+BaseType *OpTrnspos::eval(__attribute__((unused)) Matrix &rhs) {
     // todo: matrix transpose
     typeError();
 }
@@ -119,7 +119,7 @@ BaseType *OpCube::eval(Complex &rhs) {
     return new Complex(rhs.real * (realSqr - 3 * imagSqr), rhs.imag * (3 * realSqr - imagSqr));
 }
 
-BaseType *OpCube::eval(Matrix &rhs) {
+BaseType *OpCube::eval(__attribute__((unused)) Matrix &rhs) {
     // todo: matrix multiplication
     typeError();
 }
@@ -145,6 +145,7 @@ BaseType *OpFact::eval(Number &rhs) {
 
         if (absNum == 0) break;
         if (absNum == -0.5) {
+            // Multiply by sqrt(pi)
             result *= 1.772453850905516;
             break;
         }
@@ -172,11 +173,10 @@ BaseType *OpChs::eval(Complex &rhs) {
 BaseType *evalOperator(struct NODE *node) {
     uint8_t op = node->data.operand.op;
     BaseType *leftNode = evalNode(node->child);
-    // BaseType *rightNode = nullptr;
-    BaseType *result = nullptr;
+    BaseType *result;
 
     if (isUnaryOp(getOpPrecedence(op))) {
-        Operator *opNew;
+        UnaryOperator *opNew;
 
         switch (op) {
             case tFromRad:
@@ -210,8 +210,9 @@ BaseType *evalOperator(struct NODE *node) {
         result = leftNode->eval(*opNew);
 
         delete opNew;
+        delete leftNode;
     } else {
-        BaseType *rightNode = nullptr;
+        /*BaseType *rightNode = nullptr;
 
         if (op == tStore) {
         } else {
@@ -225,10 +226,10 @@ BaseType *evalOperator(struct NODE *node) {
                 default:
                     result = nullptr;
             }
-        }
+        }*/
+        typeError();
     }
 
-    delete leftNode;
     free(node);
 
     return result;

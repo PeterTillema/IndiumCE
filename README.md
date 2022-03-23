@@ -33,4 +33,4 @@ is required. After installing the toolchain, clone this repository and run
 
 ## Credits
 Thanks RoccoloxPrograms for making the homescreen font usable by fontlibc! You
-find the fonts [on Cemetech](https://www.cemetech.net/downloads/files/2143/x2429).
+find the fonts [on Cemetech](https://www.cemetech.net/downloads/files/2143/x2531).
