@@ -17,7 +17,11 @@ char *formatNum(float num) {
     static char buf[20];
     float absNum;
     int exp;
-    bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e10 || num < -1e10 || (num > -1e-3 && num < 1e-3));
+    // This is a bit different from TI-BASIC. Normally numbers up to 1e10 can be displayed without exponent, but the
+    // problem is that printf() masks the value as an int. Since integers on the ez80 can only get up to 0x7FFFFF,
+    // everything above 0x800000 gets displayed as trash. That's why numbers above 1e6 are now required to display an
+    // exponent. See https://github.com/CE-Programming/toolchain/issues/367 for more information.
+    bool needExp = (globals.normalSciEngMode != NORMAL_MODE || num > 1e6 || num < -1e6 || (num > -1e-3 && num < 1e-3));
 
     // If necessary, get the right exponent and make sure the number is properly set
     if (needExp) {
