@@ -124,6 +124,65 @@ BaseType *OpCube::eval(__attribute__((unused)) Matrix &rhs) {
     typeError();
 }
 
+BaseType *OpPower::eval(Number &lhs, Number &rhs) {
+    return new Number(powf(lhs.num, rhs.num));
+}
+
+BaseType *OpPower::eval(Number &lhs, Complex &rhs) {
+    // a^(b + ci) = a^b(cos(c*ln(a)) + isin(c*ln(a)))
+    float clna = rhs.imag * logf(lhs.num);
+    float apowb = powf(lhs.num, rhs.real);
+
+    return new Complex(apowb * cosf(clna), apowb * sinf(clna));
+}
+
+BaseType *OpPower::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpPower::eval(Complex &lhs, Number &rhs) {
+    // a + bi = r * (cos(theta) + isin(theta)), r=sqrt(a² + b²), tan(theta) = b / a
+    // (a + bi) ^ N = r ^ N * (cos(Ntheta) + isin(Ntheta))
+    float r = sqrtf(lhs.real * lhs.real + lhs.imag * lhs.imag);
+
+    float theta;
+    if (lhs.real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(lhs.imag / lhs.real);
+    }
+
+    float Ntheta = rhs.num * theta;
+    float rpowN = powf(r, rhs.num);
+
+    return new Complex(rpowN * cosf(Ntheta), rpowN * sinf(Ntheta));
+}
+
+BaseType *OpPower::eval(Complex &lhs, Complex &rhs) {
+    // (a + bi) ^ (c + di) =
+    //      r = sqrt(a² + b²)
+    //      tan(theta) = b / a
+    // exp((cln(r)-dtheta)+i(dln(r)+ctheta))
+    float lnr = logf(sqrtf(lhs.real * lhs.real + lhs.imag * lhs.imag));
+
+    float theta;
+    if (lhs.real == 0) {
+        theta = M_PI_2;
+    } else {
+        theta = atanf(lhs.imag / lhs.real);
+    }
+
+    float inner = expf(rhs.imag * lnr + rhs.real * theta);
+    float multiply = expf(rhs.real * lnr - rhs.imag * theta);
+
+    return new Complex(multiply * cosf(inner), multiply * sinf(inner));
+}
+
+BaseType *OpPower::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Number &rhs) {
+    // todo: matrix ^ N
+    typeError();
+}
+
 BaseType *OpFact::eval(Number &rhs) {
     // 0! = 1
     if (rhs.num == 0) {
@@ -168,6 +227,69 @@ BaseType *OpChs::eval(Number &rhs) {
 
 BaseType *OpChs::eval(Complex &rhs) {
     return new Complex(-rhs.real, -rhs.imag);
+}
+
+BaseType *OpMul::eval(Number &lhs, Number &rhs) {
+    return new Number(lhs.num * rhs.num);
+}
+
+BaseType *OpMul::eval(Number &lhs, Complex &rhs) {
+    return new Complex(lhs.num * rhs.real, lhs.num * rhs.imag);
+}
+
+BaseType *OpMul::eval(Complex &lhs, Number &rhs) {
+    return new Complex(lhs.real * rhs.num, lhs.imag * rhs.num);
+}
+
+BaseType *OpMul::eval(Complex &lhs, Complex &rhs) {
+    // (a + bi) * (c + di) = (ac - bd) + (ad + bc)i
+    return new Complex(lhs.real * rhs.real - lhs.imag * rhs.imag, lhs.real * rhs.imag + lhs.imag * rhs.real);
+}
+
+BaseType *OpMul::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
+    // todo: matrix multiplication
+    typeError();
+}
+
+BaseType *OpDiv::eval(Number &lhs, Number &rhs) {
+    if (rhs.num == 0) divideBy0Error();
+
+    return new Number(lhs.num / rhs.num);
+}
+
+BaseType *OpDiv::eval(Number &lhs, Complex &rhs) {
+    // a / (b + ci) = (ab - aci) / (b² + c²)
+    float denom = rhs.real * rhs.real + rhs.imag * rhs.imag;
+
+    if (denom == 0) divideBy0Error();
+
+    return new Complex(lhs.num * rhs.real / denom, -lhs.num * rhs.imag / denom);
+}
+
+BaseType *OpDiv::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpDiv::eval(Complex &lhs, Number &rhs) {
+    if (rhs.num == 0) divideBy0Error();
+
+    return new Complex(lhs.real / rhs.num, lhs.imag / rhs.num);
+}
+
+BaseType *OpDiv::eval(Complex &lhs, Complex &rhs) {
+    // (a + bi) / (c + di) = ((ac + bd) + (bc - ad)i) / (c² + d²)
+    float denom = rhs.real * rhs.real + rhs.imag * rhs.imag;
+
+    if (denom == 0) divideBy0Error();
+
+    return new Complex(
+            (lhs.real * rhs.real + lhs.imag * rhs.imag) / denom,
+            (lhs.imag * rhs.real - lhs.real * rhs.imag) / denom
+            );
+}
+
+BaseType *OpDiv::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
 }
 
 BaseType *OpAddSub::eval(Matrix &lhs, Matrix &rhs) {
@@ -275,6 +397,15 @@ BaseType *evalOperator(struct NODE *node) {
             rightNode = evalNode(node->child->next);
 
             switch (op) {
+                case tPower:
+                    opNew = new OpPower();
+                    break;
+                case tMul:
+                    opNew = new OpMul();
+                    break;
+                case tDiv:
+                    opNew = new OpDiv();
+                    break;
                 case tAdd:
                     opNew = new OpAdd();
                     break;

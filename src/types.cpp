@@ -104,8 +104,7 @@ char *List::toString() const {
     }
 
     if (strlen(buf) > 25) {
-        buf[24] = ' ';
-        buf[25] = 0x0F;
+        buf[25] = 0xCE;
     } else {
         // Overwrite space with closing bracket
         buf[strlen(buf) - 1] = '}';
@@ -147,8 +146,7 @@ char *ComplexList::toString() const {
     }
 
     if (strlen(buf) > 25) {
-        buf[24] = ' ';
-        buf[25] = 0x0F;
+        buf[25] = 0xCE;
     } else {
         // Overwrite space with closing bracket
         buf[strlen(buf) - 1] = '}';

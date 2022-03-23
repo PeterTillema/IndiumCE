@@ -43,6 +43,20 @@ class OpCube : public UnaryOperator {
     BaseType *eval(Matrix &rhs) override;
 };
 
+class OpPower : public BinaryOperator {
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Number &lhs, Matrix &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Number &rhs) override;
+};
+
 class OpFact : public UnaryOperator {
     BaseType *eval(Number &rhs) override;
 
@@ -53,6 +67,32 @@ class OpChs : public UnaryOperator {
     BaseType *eval(Number &rhs) override;
 
     BaseType *eval(Complex &rhs) override;
+};
+
+class OpMul : public BinaryOperator {
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Matrix &rhs) override;
+};
+
+class OpDiv : public BinaryOperator {
+    BaseType *eval(Number &lhs, Number &rhs) override;
+
+    BaseType *eval(Number &lhs, Complex &rhs) override;
+
+    BaseType *eval(Number &lhs, Matrix &rhs) override;
+
+    BaseType *eval(Complex &lhs, Number &rhs) override;
+
+    BaseType *eval(Complex &lhs, Complex &rhs) override;
+
+    BaseType *eval(Matrix &lhs, Number &rhs) override;
 };
 
 class OpAddSub : public BinaryOperator {
