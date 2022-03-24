@@ -147,7 +147,6 @@ float atanfMode(float num) {
 }
 
 Matrix *multiplyMatrices(Matrix &lhs, Matrix &rhs) {
-    // todo: optimize this!!
     if (lhs.elements.empty()) dimensionError();
     if (rhs.elements.empty()) dimensionError();
     if (lhs.elements[0].size() != rhs.elements.size()) dimensionError();

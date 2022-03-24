@@ -361,9 +361,16 @@ BaseType *OpAdd::eval(Complex &lhs, Complex &rhs) {
     return new Complex(lhs.real + rhs.real, lhs.imag + rhs.imag);
 }
 
-BaseType *OpAdd::eval(__attribute__((unused)) String &lhs, __attribute__((unused)) String &rhs) {
-    // todo: string concatenation
-    typeError();
+BaseType *OpAdd::eval(String &lhs, String &rhs) {
+    if (!lhs.length || !rhs.length) dimensionError();
+
+    unsigned int newLength = lhs.length + rhs.length;
+    char *newString = new char[newLength];
+
+    memcpy(newString, lhs.string, lhs.length);
+    memcpy(newString + lhs.length, rhs.string, rhs.length);
+
+    return new String(newLength, newString);
 }
 
 BaseType *OpSub::eval(Number &lhs, Number &rhs) {

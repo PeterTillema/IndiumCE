@@ -173,8 +173,22 @@ String::~String() {
 }
 
 char *String::toString() const {
-    // todo
-    typeError();
+    static char buf[35] = "";
+
+    void *readLocation = string;
+    unsigned int totalLength = 0;
+    uint8_t lengthOfToken;
+
+    while (totalLength < length) {
+        char *out = ti_GetTokenString(&readLocation, &lengthOfToken, nullptr);
+
+        strcat(buf, out);
+        totalLength += lengthOfToken;
+
+        if (strlen(buf) > 26) break;
+    }
+
+    return buf;
 }
 
 TypeType String::type() {

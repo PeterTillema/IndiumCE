@@ -87,8 +87,14 @@ void commandDisp(struct NODE *node) {
                 if (rowIndex >= 10) break;
             }
         } else {
-            sprintf(buf, "%26s", result->toString());
-            fontlib_DrawString(buf);
+            char *out = result->toString();
+
+            if (result->type() == TypeType::STRING) {
+                fontlib_DrawStringL(out, 26);
+            } else {
+                sprintf(buf, "%26s", out);
+                fontlib_DrawString(buf);
+            }
             fontlib_Newline();
         }
 
