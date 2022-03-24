@@ -21,6 +21,26 @@ public:
     virtual BaseType *eval(Matrix &rhs);
 };
 
+class FuncRound : public UnaryFunction {
+    BaseType * eval(Number &rhs) override;
+
+    BaseType * eval(Complex &rhs) override;
+
+    BaseType * eval(Matrix &rhs) override;
+};
+
+class FuncSin : public UnaryFunction {
+    BaseType * eval(Number &rhs) override;
+};
+
+class FuncCos : public UnaryFunction {
+    BaseType * eval(Number &rhs) override;
+};
+
+class FuncTan : public UnaryFunction {
+    BaseType * eval(Number &rhs) override;
+};
+
 BaseType *evalFunction(struct NODE *evalNode);
 
 #endif

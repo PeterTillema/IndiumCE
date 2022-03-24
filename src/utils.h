@@ -23,6 +23,8 @@ float cosfMode(float num);
 
 float sinfMode(float num);
 
+float tanfMode(float num);
+
 float atanfMode(float num);
 
 Matrix *multiplyMatrices(Matrix &lhs, Matrix &rhs);

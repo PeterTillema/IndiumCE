@@ -54,3 +54,7 @@ void overflowError() {
 void domainError() {
     parseError("Domain error");
 }
+
+void argumentsError() {
+    parseError("Invalid arguments");
+}

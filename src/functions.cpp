@@ -1,8 +1,21 @@
 #include "functions.h"
 #include "ast.h"
+#include "evaluate.h"
+#include "utils.h"
 #include "types.h"
 
-#include <cstdlib>
+#include <cmath>
+
+BaseType *unaryFunction(NODE *firstChild, unsigned int childNo, UnaryFunction *function) {
+    if (childNo != 1) argumentsError();
+
+    auto arg = evalNode(firstChild);
+    BaseType *result = arg->eval(*function);
+
+    delete arg;
+
+    return result;
+}
 
 BaseType *evalFunction(struct NODE *funcNode) {
     unsigned int childNo = 0;
@@ -16,12 +29,27 @@ BaseType *evalFunction(struct NODE *funcNode) {
 
     unsigned int func = funcNode->data.operand.func;
 
-    switch (func) {
-        default:
-            break;
-    }
+    if (childNo == 1) {
+        UnaryFunction *funcHandle;
+        switch (func) {
+            case tRound:
+                funcHandle = new FuncRound();
+                break;
+            case tSin:
+                funcHandle = new FuncSin();
+                break;
+            case tCos:
+                funcHandle = new FuncCos();
+                break;
+            case tTan:
+                funcHandle = new FuncTan();
+                break;
+            default:
+                argumentsError();
+        }
 
-    free(funcNode);
+        result = unaryFunction(funcNode->child, childNo, funcHandle);
+    }
 
     return result;
 }
@@ -64,4 +92,39 @@ BaseType *UnaryFunction::eval(__attribute__((unused)) String &rhs) {
 
 BaseType *UnaryFunction::eval(__attribute__((unused)) Matrix &rhs) {
     typeError();
+}
+
+BaseType *FuncSin::eval(Number &rhs) {
+    return new Number(sinfMode(rhs.num));
+}
+
+BaseType *FuncCos::eval(Number &rhs) {
+    return new Number(cosfMode(rhs.num));
+}
+
+BaseType *FuncTan::eval(Number &rhs) {
+    return new Number(tanfMode(rhs.num));
+}
+
+BaseType *FuncRound::eval(Number &rhs) {
+    // todo: use a custom routine, as this one sucks!
+    return new Number(roundf(rhs.num * 1e9) / 1e9);
+}
+
+BaseType *FuncRound::eval(Complex &rhs) {
+    return new Complex(roundf(rhs.real * 1e9) / 1e9, roundf(rhs.imag * 1e9) / 1e9);
+}
+
+BaseType *FuncRound::eval(Matrix &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = rhs.elements;
+
+    for (auto &row : newElements) {
+        for (auto &col : row) {
+            col = dynamic_cast<Number &>(*this->eval(col));
+        }
+    }
+
+    return new Matrix(newElements);
 }

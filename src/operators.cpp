@@ -6,7 +6,6 @@
 #include "utils.h"
 
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
 #include <tice.h>
 
@@ -157,8 +156,6 @@ BaseType *evalOperator(struct NODE *node) {
     }
 
     delete leftNode;
-
-    free(node);
 
     return result;
 }

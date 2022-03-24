@@ -138,6 +138,14 @@ float sinfMode(float num) {
     return sinf(num * M_PI / 180);
 }
 
+float tanfMode(float num) {
+    if (globals.inRadianMode) {
+        return tanf(num);
+    }
+
+    return tanf(num * M_PI / 180);
+}
+
 float atanfMode(float num) {
     if (globals.inRadianMode) {
         return atanf(num);

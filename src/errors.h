@@ -21,4 +21,6 @@ void overflowError() __attribute__((noreturn));
 
 void domainError() __attribute__((noreturn));
 
+void argumentsError() __attribute__((noreturn));
+
 #endif
