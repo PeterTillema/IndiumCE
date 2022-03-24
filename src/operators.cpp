@@ -98,14 +98,23 @@ BaseType *OpSqr::eval(Complex &rhs) {
     return new Complex(rhs.real * rhs.real - rhs.imag * rhs.imag, rhs.real * rhs.imag * 2);
 }
 
-BaseType *OpSqr::eval(__attribute__((unused)) Matrix &rhs) {
-    // todo: matrix square
-    typeError();
+BaseType *OpSqr::eval(Matrix &rhs) {
+    return multiplyMatrices(rhs, rhs);
 }
 
-BaseType *OpTrnspos::eval(__attribute__((unused)) Matrix &rhs) {
-    // todo: matrix transpose
-    typeError();
+BaseType *OpTrnspos::eval(Matrix &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+    if (rhs.elements[0].empty()) dimensionError();
+
+    vector<vector<Number>> newElements(rhs.elements[0].size(), vector<Number>(rhs.elements.size()));
+
+    for (unsigned int row = 0; row < rhs.elements.size(); row++) {
+        for (unsigned int col = 0; col < rhs.elements[0].size(); col++) {
+            newElements[col][row] = rhs.elements[row][col];
+        }
+    }
+
+    return new Matrix(newElements);
 }
 
 BaseType *OpCube::eval(Number &rhs) {
@@ -120,9 +129,13 @@ BaseType *OpCube::eval(Complex &rhs) {
     return new Complex(rhs.real * (realSqr - 3 * imagSqr), rhs.imag * (3 * realSqr - imagSqr));
 }
 
-BaseType *OpCube::eval(__attribute__((unused)) Matrix &rhs) {
-    // todo: matrix multiplication
-    typeError();
+BaseType *OpCube::eval(Matrix &rhs) {
+    auto matrixSquare = multiplyMatrices(rhs, rhs);
+    auto matrixCube = multiplyMatrices(*matrixSquare, rhs);
+
+    delete matrixSquare;
+
+    return matrixCube;
 }
 
 BaseType *OpPower::eval(Number &lhs, Number &rhs) {
@@ -173,7 +186,7 @@ BaseType *OpPower::eval(Complex &lhs, Complex &rhs) {
         theta = atanfMode(lhs.imag / lhs.real);
     }
 
-    float inner = expf(rhs.imag * lnr + rhs.real * theta);
+    float inner = rhs.imag * lnr + rhs.real * theta;
     float multiply = expf(rhs.real * lnr - rhs.imag * theta);
 
     return new Complex(multiply * cosfMode(inner), multiply * sinfMode(inner));
@@ -185,35 +198,35 @@ BaseType *OpPower::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unus
 }
 
 BaseType *OpFact::eval(Number &rhs) {
+    float num = rhs.num;
+
     // 0! = 1
-    if (rhs.num == 0) {
+    if (num == 0) {
         return new Number(1);
+    } else if (num == -0.5) {
+        return new Number(1.772453850905516);
     }
+    if (num < 0) domainError();
 
-    bool isNeg = rhs.num < 0;
-    float absNum = fabsf(rhs.num);
+    // The ! operator goes from -0.5 to 69.5. Everything outside that is overflow error
+    if (num > 69.5) overflowError();
 
-    // The ! operator goes from -69.5 to 69.5. Everything outside that is overflow error
-    if (absNum > 69.5) overflowError();
-
-    float rem = fmodf(absNum, 1);
+    float rem = fmodf(num, 1);
     if (rem != 0 && rem != 0.5) domainError();
 
-    float result = absNum;
-    while (absNum > 0) {
-        absNum--;
+    float result = num;
+    while (num > 0) {
+        num--;
 
-        if (absNum == 0) break;
-        if (absNum == -0.5) {
+        if (num == 0) break;
+        if (num == -0.5) {
             // Multiply by sqrt(pi)
             result *= 1.772453850905516;
             break;
         }
 
-        result *= absNum;
+        result *= num;
     }
-
-    if (isNeg) result = -result;
 
     return new Number(result);
 }
@@ -257,9 +270,8 @@ BaseType *OpMul::eval(Complex &lhs, Complex &rhs) {
     return new Complex(lhs.real * rhs.real - lhs.imag * rhs.imag, lhs.real * rhs.imag + lhs.imag * rhs.real);
 }
 
-BaseType *OpMul::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Matrix &rhs) {
-    // todo: matrix multiplication
-    typeError();
+BaseType *OpMul::eval(Matrix &lhs, Matrix &rhs) {
+    return multiplyMatrices(lhs, rhs);
 }
 
 BaseType *OpDiv::eval(Number &lhs, Number &rhs) {

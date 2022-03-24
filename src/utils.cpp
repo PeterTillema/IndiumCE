@@ -1,10 +1,12 @@
 #include "utils.h"
 #include "globals.h"
+#include "types.h"
 
 #include <cmath>
 #include <cstring>
 #include <fileioc.h>
 #include <tice.h>
+#include <TINYSTL/vector.h>
 
 static int pt = 0;
 static int ct = 0;
@@ -12,6 +14,8 @@ static int nt = -2;
 
 extern unsigned int parseLine;
 extern unsigned int parseCol;
+
+using tinystl::vector;
 
 char *formatNum(float num) {
     static char buf[20];
@@ -140,4 +144,23 @@ float atanfMode(float num) {
     }
 
     return atanf(num * M_PI / 180);
+}
+
+Matrix *multiplyMatrices(Matrix &lhs, Matrix &rhs) {
+    // todo: optimize this!!
+    if (lhs.elements.empty()) dimensionError();
+    if (rhs.elements.empty()) dimensionError();
+    if (lhs.elements[0].size() != rhs.elements.size()) dimensionError();
+
+    vector<vector<Number>> newElements(lhs.elements.size(), vector<Number>(rhs.elements[0].size()));
+
+    for (unsigned int i = 0; i < lhs.elements.size(); i++) {
+        for (unsigned int j = 0; j < rhs.elements[0].size(); j++) {
+            for (unsigned int k = 0; k < lhs.elements[0].size(); k++) {
+                newElements[i][j].num += lhs.elements[i][k].num * rhs.elements[k][j].num;
+            }
+        }
+    }
+
+    return new Matrix(newElements);
 }

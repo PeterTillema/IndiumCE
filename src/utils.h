@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "types.h"
+
 #include <fileioc.h>
 
 char *formatNum(float num);
@@ -22,5 +24,7 @@ float cosfMode(float num);
 float sinfMode(float num);
 
 float atanfMode(float num);
+
+Matrix *multiplyMatrices(Matrix &lhs, Matrix &rhs);
 
 #endif
