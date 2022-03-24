@@ -59,14 +59,14 @@ class OpPower : public BinaryOperator {
 
 class OpFact : public UnaryOperator {
     BaseType *eval(Number &rhs) override;
-
-    BaseType *eval(Matrix &rhs) override;;
 };
 
 class OpChs : public UnaryOperator {
     BaseType *eval(Number &rhs) override;
 
     BaseType *eval(Complex &rhs) override;
+
+    BaseType *eval(Matrix &rhs) override;
 };
 
 class OpMul : public BinaryOperator {

@@ -227,7 +227,7 @@ BaseType *UnaryOperator::eval(__attribute__((unused)) Complex &rhs) {
 BaseType *UnaryOperator::eval(List &rhs) {
     if (rhs.elements.empty()) dimensionError();
 
-    auto newElements = vector<Number>(rhs.elements.size());
+    auto newElements = rhs.elements;
 
     for (auto &number : newElements) {
         number = dynamic_cast<Number &>(*this->eval(number));
@@ -239,7 +239,7 @@ BaseType *UnaryOperator::eval(List &rhs) {
 BaseType *UnaryOperator::eval(ComplexList &rhs) {
     if (rhs.elements.empty()) dimensionError();
 
-    auto newElements = vector<Complex>(rhs.elements.size());
+    auto newElements = rhs.elements;
 
     for (auto &cplx : newElements) {
         cplx = dynamic_cast<Complex &>(*this->eval(cplx));
@@ -252,18 +252,8 @@ BaseType *UnaryOperator::eval(__attribute__((unused)) String &rhs) {
     typeError();
 }
 
-BaseType *UnaryOperator::eval(Matrix &rhs) {
-    if (rhs.elements.empty()) dimensionError();
-
-    auto newElements = rhs.elements;
-
-    for (auto &row : newElements) {
-        for (auto &col : row) {
-            col = dynamic_cast<Number &>(*this->eval(col));
-        }
-    }
-
-    return new Matrix(newElements);
+BaseType *UnaryOperator::eval(__attribute__((unused)) Matrix &rhs) {
+    typeError();
 }
 
 BaseType *BinaryOperator::eval(Number &lhs, BaseType &rhs) {

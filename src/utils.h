@@ -17,4 +17,10 @@ int tokenPeek();
 
 bool endOfLine(int token);
 
+float cosfMode(float num);
+
+float sinfMode(float num);
+
+float atanfMode(float num);
+
 #endif

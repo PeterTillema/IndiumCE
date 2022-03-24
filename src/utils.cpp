@@ -117,3 +117,27 @@ int tokenPeek() {
 bool endOfLine(int token) {
     return token == EOF || (uint8_t) token == tEnter || (uint8_t) token == tColon;
 }
+
+float cosfMode(float num) {
+    if (globals.inRadianMode) {
+        return cosf(num);
+    }
+
+    return cosf(num * M_PI / 180);
+}
+
+float sinfMode(float num) {
+    if (globals.inRadianMode) {
+        return sinf(num);
+    }
+
+    return sinf(num * M_PI / 180);
+}
+
+float atanfMode(float num) {
+    if (globals.inRadianMode) {
+        return atanf(num);
+    }
+
+    return atanf(num * M_PI / 180);
+}

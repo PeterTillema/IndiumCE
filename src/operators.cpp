@@ -3,7 +3,7 @@
 #include "errors.h"
 #include "evaluate.h"
 #include "globals.h"
-#include "main.h"
+#include "utils.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -77,7 +77,7 @@ BaseType *OpRecip::eval(Number &rhs) {
 
 BaseType *OpRecip::eval(Complex &rhs) {
     // 1 / (a + bi) = (a - bi) / (a² + b²)
-    float denom = rhs.real * rhs.real + rhs.imag + rhs.imag;
+    float denom = rhs.real * rhs.real + rhs.imag * rhs.imag;
 
     if (denom == 0) divideBy0Error();
 
@@ -99,7 +99,7 @@ BaseType *OpSqr::eval(Complex &rhs) {
 }
 
 BaseType *OpSqr::eval(__attribute__((unused)) Matrix &rhs) {
-    // todo: matrix multiplication
+    // todo: matrix square
     typeError();
 }
 
@@ -134,7 +134,7 @@ BaseType *OpPower::eval(Number &lhs, Complex &rhs) {
     float clna = rhs.imag * logf(lhs.num);
     float apowb = powf(lhs.num, rhs.real);
 
-    return new Complex(apowb * cosf(clna), apowb * sinf(clna));
+    return new Complex(apowb * cosfMode(clna), apowb * sinfMode(clna));
 }
 
 BaseType *OpPower::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Matrix &rhs) {
@@ -150,13 +150,13 @@ BaseType *OpPower::eval(Complex &lhs, Number &rhs) {
     if (lhs.real == 0) {
         theta = M_PI_2;
     } else {
-        theta = atanf(lhs.imag / lhs.real);
+        theta = atanfMode(lhs.imag / lhs.real);
     }
 
     float Ntheta = rhs.num * theta;
     float rpowN = powf(r, rhs.num);
 
-    return new Complex(rpowN * cosf(Ntheta), rpowN * sinf(Ntheta));
+    return new Complex(rpowN * cosfMode(Ntheta), rpowN * sinfMode(Ntheta));
 }
 
 BaseType *OpPower::eval(Complex &lhs, Complex &rhs) {
@@ -170,13 +170,13 @@ BaseType *OpPower::eval(Complex &lhs, Complex &rhs) {
     if (lhs.real == 0) {
         theta = M_PI_2;
     } else {
-        theta = atanf(lhs.imag / lhs.real);
+        theta = atanfMode(lhs.imag / lhs.real);
     }
 
     float inner = expf(rhs.imag * lnr + rhs.real * theta);
     float multiply = expf(rhs.real * lnr - rhs.imag * theta);
 
-    return new Complex(multiply * cosf(inner), multiply * sinf(inner));
+    return new Complex(multiply * cosfMode(inner), multiply * sinfMode(inner));
 }
 
 BaseType *OpPower::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Number &rhs) {
@@ -218,16 +218,26 @@ BaseType *OpFact::eval(Number &rhs) {
     return new Number(result);
 }
 
-BaseType *OpFact::eval(__attribute__((unused)) Matrix &rhs) {
-    typeError();
-}
-
 BaseType *OpChs::eval(Number &rhs) {
     return new Number(-rhs.num);
 }
 
 BaseType *OpChs::eval(Complex &rhs) {
     return new Complex(-rhs.real, -rhs.imag);
+}
+
+BaseType *OpChs::eval(Matrix &rhs) {
+    if (rhs.elements.empty()) dimensionError();
+
+    auto newElements = rhs.elements;
+
+    for (auto &row : newElements) {
+        for (auto &col : row) {
+            col = dynamic_cast<Number &>(*this->eval(col));
+        }
+    }
+
+    return new Matrix(newElements);
 }
 
 BaseType *OpMul::eval(Number &lhs, Number &rhs) {
