@@ -100,11 +100,15 @@ class OpAddSub : public BinaryOperator {
 
     BaseType *eval(Number &lhs, Complex &rhs) override = 0;
 
+    BaseType *eval(Number &lhs, Matrix &rhs) override;
+
     BaseType *eval(Complex &lhs, Number &rhs) override = 0;
 
     BaseType *eval(Complex &lhs, Complex &rhs) override = 0;
 
     BaseType *eval(String &lhs, String &rhs) override = 0;
+
+    BaseType *eval(Matrix &lhs, Number &rhs) override;
 
     BaseType *eval(Matrix &lhs, Matrix &rhs) override;
 };

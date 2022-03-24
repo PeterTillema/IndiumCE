@@ -293,6 +293,14 @@ BaseType *OpDiv::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused
     typeError();
 }
 
+BaseType *OpAddSub::eval(__attribute__((unused)) Number &lhs, __attribute__((unused)) Matrix &rhs) {
+    typeError();
+}
+
+BaseType *OpAddSub::eval(__attribute__((unused)) Matrix &lhs, __attribute__((unused)) Number &rhs) {
+    typeError();
+}
+
 BaseType *OpAddSub::eval(Matrix &lhs, Matrix &rhs) {
     if (lhs.elements.empty()) dimensionError();
     if (lhs.elements.size() != rhs.elements.size()) dimensionMismatch();
