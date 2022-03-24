@@ -147,7 +147,7 @@ static void emptyOpStack() {
         struct NODE *tmp = opStack[i];
 
         if (tmp->data.type == ET_OPERATOR) pushOp(MAX_PRECEDENCE + 1, MAX_PRECEDENCE + 1);
-        else if (tmp->data.type == ET_FUNCTION_CALL) pushRParen(tLParen);
+        else if (tmp->data.type == ET_FUNCTION_CALL) pushRParen(tmp->data.operand.func);
     }
 
     if (outputStackNr != 1) parseError("Invalid expression");
