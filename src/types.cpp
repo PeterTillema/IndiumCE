@@ -198,7 +198,9 @@ Matrix::~Matrix() {
 }
 
 char *Matrix::toString() const {
-    // todo
+    // Matrix to string depends on the context: when using Disp, it is displayed as a real 2D matrix. When using
+    // Output(, it is converted to a string without spaces. Don't convert it here, but at the place where it's
+    // necessary.
     typeError();
 }
 

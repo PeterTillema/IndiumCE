@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "parse.h"
 #include "variables.h"
+#include "main.h"
 
 #include <intce.h>
 #include <fileioc.h>
@@ -49,12 +50,12 @@ int main(int argc, char *argv[]) {
 
     // Setup graphics
     gfx_Begin();
-    gfx_HorizLine_NoClip(0, 10, gfx_lcdWidth);
+    gfx_HorizLine_NoClip(0, HOMESCREEN_Y - 1, gfx_lcdWidth);
     gfx_SetColor(223);
-    gfx_FillRectangle_NoClip(0, 0, gfx_lcdWidth, 10);
+    gfx_FillRectangle_NoClip(0, 0, gfx_lcdWidth, HOMESCREEN_Y - 1);
     gfx_PrintStringXY("IndiumCE v0.0.1 - By Peter \"PT_\" Tillema", 30, 1);
     gfx_SetColor(255);
-    gfx_FillRectangle_NoClip(0, 11, gfx_lcdWidth, gfx_lcdHeight - 11);
+    gfx_FillRectangle_NoClip(0, HOMESCREEN_Y, gfx_lcdWidth, gfx_lcdHeight - HOMESCREEN_Y);
 
     // Setup font
     fontlib_font_t *font = fontlib_GetFontByIndex("OSLFONT", 0);
@@ -66,7 +67,7 @@ int main(int argc, char *argv[]) {
     }
 
     fontlib_SetFont(font, static_cast<fontlib_load_options_t>(0));
-    fontlib_SetWindow(5, 15, gfx_lcdWidth - 5, gfx_lcdHeight - 15);
+    fontlib_SetWindow(HOMESCREEN_X, HOMESCREEN_Y, gfx_lcdWidth - 2 * HOMESCREEN_X, gfx_lcdHeight - HOMESCREEN_Y);
     fontlib_SetLineSpacing(3, 3);
     fontlib_SetNewlineCode(0);
     fontlib_SetNewlineOptions(FONTLIB_AUTO_SCROLL | FONTLIB_PRECLEAR_NEWLINE);
@@ -84,6 +85,8 @@ int main(int argc, char *argv[]) {
 
     auto root = parseProgram(input_slot, false, false);
     evalNodes(root);
+
+    fontlib_DrawString("                      Done");
 
     while (!os_GetCSC());
 
