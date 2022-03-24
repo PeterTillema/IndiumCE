@@ -1,5 +1,6 @@
 #include "types.h"
 #include "errors.h"
+#include "functions.h"
 #include "utils.h"
 
 #include <cstring>
@@ -29,6 +30,10 @@ BaseType *Number::eval(UnaryOperator &op) {
 
 BaseType *Number::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
+}
+
+BaseType *Number::eval(UnaryFunction &func) {
+    return func.eval(*this);
 }
 
 Complex::Complex(float real, float imag) {
@@ -79,6 +84,10 @@ BaseType *Complex::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
 }
 
+BaseType *Complex::eval(UnaryFunction &func) {
+    return func.eval(*this);
+}
+
 List::List(vector<Number> &elements) {
     this->elements = elements;
 }
@@ -119,6 +128,10 @@ BaseType *List::eval(UnaryOperator &op) {
 
 BaseType *List::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
+}
+
+BaseType *List::eval(UnaryFunction &func) {
+    return func.eval(*this);
 }
 
 ComplexList::ComplexList(const vector<Complex> &elements) {
@@ -163,6 +176,10 @@ BaseType *ComplexList::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
 }
 
+BaseType *ComplexList::eval(UnaryFunction &func) {
+    return func.eval(*this);
+}
+
 String::String(unsigned int length, char *string) {
     this->length = length;
     this->string = string;
@@ -203,6 +220,10 @@ BaseType *String::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
 }
 
+BaseType *String::eval(UnaryFunction &func) {
+    return func.eval(*this);
+}
+
 Matrix::Matrix(vector<vector<Number>> &elements) {
     this->elements = elements;
 }
@@ -228,6 +249,10 @@ BaseType *Matrix::eval(UnaryOperator &op) {
 
 BaseType *Matrix::eval(BinaryOperator &op, BaseType *rhs) {
     return op.eval(*this, *rhs);
+}
+
+BaseType *Matrix::eval(UnaryFunction &func) {
+    return func.eval(*this);
 }
 
 BaseType *UnaryOperator::eval(__attribute__((unused)) Number &rhs) {

@@ -53,6 +53,116 @@ bool isUnaryOp(uint8_t prec) {
     return prec <= 4 && prec != 2;
 }
 
+BaseType *evalOperator(struct NODE *node) {
+    uint8_t op = node->data.operand.op;
+    BaseType *leftNode = evalNode(node->child);
+    BaseType *result;
+
+    if (isUnaryOp(getOpPrecedence(op))) {
+        UnaryOperator *opNew;
+
+        switch (op) {
+            case tFromRad:
+                opNew = new OpFromRad();
+                break;
+            case tFromDeg:
+                opNew = new OpFromDeg();
+                break;
+            case tRecip:
+                opNew = new OpRecip();
+                break;
+            case tSqr:
+                opNew = new OpSqr();
+                break;
+            case tTrnspos:
+                opNew = new OpTrnspos();
+                break;
+            case tCube:
+                opNew = new OpCube();
+                break;
+            case tFact:
+                opNew = new OpFact();
+                break;
+            case tChs:
+                opNew = new OpChs();
+                break;
+            default:
+                typeError();
+        }
+
+        result = leftNode->eval(*opNew);
+
+        delete opNew;
+    } else {
+        BaseType *rightNode;
+        BinaryOperator *opNew;
+
+        if (op == tStore) {
+            typeError();
+        } else {
+            rightNode = evalNode(node->child->next);
+
+            switch (op) {
+                case tPower:
+                    opNew = new OpPower();
+                    break;
+                case tMul:
+                    opNew = new OpMul();
+                    break;
+                case tDiv:
+                    opNew = new OpDiv();
+                    break;
+                case tAdd:
+                    opNew = new OpAdd();
+                    break;
+                case tSub:
+                    opNew = new OpSub();
+                    break;
+                case tEQ:
+                    opNew = new OpEQ();
+                    break;
+                case tLT:
+                    opNew = new OpLT();
+                    break;
+                case tGT:
+                    opNew = new OpGT();
+                    break;
+                case tLE:
+                    opNew = new OpLE();
+                    break;
+                case tGE:
+                    opNew = new OpGE();
+                    break;
+                case tNE:
+                    opNew = new OpNE();
+                    break;
+                case tAnd:
+                    opNew = new OpAnd();
+                    break;
+                case tOr:
+                    opNew = new OpOr();
+                    break;
+                case tXor:
+                    opNew = new OpXor();
+                    break;
+                default:
+                    typeError();
+            }
+
+            result = leftNode->eval(*opNew, rightNode);
+
+            delete opNew;
+            delete rightNode;
+        }
+    }
+
+    delete leftNode;
+
+    free(node);
+
+    return result;
+}
+
 BaseType *OpFromRad::eval(Number &rhs) {
     if (globals.inRadianMode) {
         return new Number(rhs.num);
@@ -554,114 +664,4 @@ BaseType *OpOr::eval(Number &lhs, Number &rhs) {
 
 BaseType *OpXor::eval(Number &lhs, Number &rhs) {
     return new Number((lhs.num != 0) != (rhs.num != 0));
-}
-
-BaseType *evalOperator(struct NODE *node) {
-    uint8_t op = node->data.operand.op;
-    BaseType *leftNode = evalNode(node->child);
-    BaseType *result;
-
-    if (isUnaryOp(getOpPrecedence(op))) {
-        UnaryOperator *opNew;
-
-        switch (op) {
-            case tFromRad:
-                opNew = new OpFromRad();
-                break;
-            case tFromDeg:
-                opNew = new OpFromDeg();
-                break;
-            case tRecip:
-                opNew = new OpRecip();
-                break;
-            case tSqr:
-                opNew = new OpSqr();
-                break;
-            case tTrnspos:
-                opNew = new OpTrnspos();
-                break;
-            case tCube:
-                opNew = new OpCube();
-                break;
-            case tFact:
-                opNew = new OpFact();
-                break;
-            case tChs:
-                opNew = new OpChs();
-                break;
-            default:
-                typeError();
-        }
-
-        result = leftNode->eval(*opNew);
-
-        delete opNew;
-    } else {
-        BaseType *rightNode;
-        BinaryOperator *opNew;
-
-        if (op == tStore) {
-            typeError();
-        } else {
-            rightNode = evalNode(node->child->next);
-
-            switch (op) {
-                case tPower:
-                    opNew = new OpPower();
-                    break;
-                case tMul:
-                    opNew = new OpMul();
-                    break;
-                case tDiv:
-                    opNew = new OpDiv();
-                    break;
-                case tAdd:
-                    opNew = new OpAdd();
-                    break;
-                case tSub:
-                    opNew = new OpSub();
-                    break;
-                case tEQ:
-                    opNew = new OpEQ();
-                    break;
-                case tLT:
-                    opNew = new OpLT();
-                    break;
-                case tGT:
-                    opNew = new OpGT();
-                    break;
-                case tLE:
-                    opNew = new OpLE();
-                    break;
-                case tGE:
-                    opNew = new OpGE();
-                    break;
-                case tNE:
-                    opNew = new OpNE();
-                    break;
-                case tAnd:
-                    opNew = new OpAnd();
-                    break;
-                case tOr:
-                    opNew = new OpOr();
-                    break;
-                case tXor:
-                    opNew = new OpXor();
-                    break;
-                default:
-                    typeError();
-            }
-
-            result = leftNode->eval(*opNew, rightNode);
-
-            delete opNew;
-            delete rightNode;
-        }
-    }
-
-    delete leftNode;
-
-    free(node);
-
-    return result;
 }

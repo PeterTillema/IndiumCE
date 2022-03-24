@@ -12,6 +12,8 @@ class UnaryOperator;
 
 class BinaryOperator;
 
+class UnaryFunction;
+
 enum class TypeType {
     NUMBER, COMPLEX, LIST, COMPLEX_LIST, STRING, MATRIX
 };
@@ -25,6 +27,8 @@ public:
     virtual BaseType *eval(UnaryOperator &op) = 0;
 
     virtual BaseType *eval(BinaryOperator &op, BaseType *rhs) = 0;
+
+    virtual BaseType *eval(UnaryFunction &func) = 0;
 
     virtual TypeType type() = 0;
 };
@@ -46,6 +50,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class Complex : public BaseType {
@@ -66,6 +72,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class List : public BaseType {
@@ -83,6 +91,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class ComplexList : public BaseType {
@@ -100,6 +110,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class String : public BaseType {
@@ -118,6 +130,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class Matrix : public BaseType {
@@ -135,6 +149,8 @@ public:
     BaseType *eval(UnaryOperator &op) override;
 
     BaseType *eval(BinaryOperator &op, BaseType *rhs) override;
+
+    BaseType *eval(UnaryFunction &func) override;
 };
 
 class UnaryOperator {
