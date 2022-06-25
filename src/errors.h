@@ -7,7 +7,7 @@ void forceExit() __attribute__((noreturn));
 
 void parseError(const char *string) __attribute__((noreturn));
 
-void memoryError();
+void memoryError() __attribute__((noreturn));
 
 void typeError() __attribute__((noreturn));
 
