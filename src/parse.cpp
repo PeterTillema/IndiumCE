@@ -159,6 +159,8 @@ static struct NODE *tokenUnimplemented(__attribute__((unused)) ti_var_t slot, __
     parseError("Token not implemented");
 }
 
+#define UNEXPRESSION(func) (reinterpret_cast<void (*)(ti_var_t, int)>(((unsigned int *)(func) + 0x800000)))
+
 struct NODE *expressionLine(ti_var_t slot, int token, bool stopAtComma, bool stopAtParen) {
     // Reset expression things
     outputStackNr = 0;
@@ -187,6 +189,8 @@ struct NODE *expressionLine(ti_var_t slot, int token, bool stopAtComma, bool sto
 
     return outputStack[0];
 }
+
+#undef UNEXPRESSION
 
 static void tokenOperator(__attribute__((unused)) ti_var_t slot, int token) {
     needMulOp = false;
@@ -522,7 +526,7 @@ struct NODE *parseProgram(ti_var_t slot, bool expectEnd, bool expectElse) {
         if ((unsigned int)(uint64_t)(func) < 0x800000) {
             node = expressionLine(slot, token, false, false);
         } else {
-            node = (*parseFunctions[token])(slot, token);
+            node = (*func)(slot, token);
         }
 
         // Advance line and column
@@ -608,6 +612,8 @@ static struct NODE *tokenCommandParen(ti_var_t slot, int token) {
 static struct NODE *tokenNewline(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
     return nullptr;
 }
+
+#define EXPRESSION(func) (reinterpret_cast<NODE *(*)(ti_var_t, int)>(((unsigned int*)(&(func)) - 0x800000)))
 
 struct NODE *(*parseFunctions[256])(ti_var_t, int) = {
         tokenUnimplemented,                // **unused**
@@ -867,3 +873,5 @@ struct NODE *(*parseFunctions[256])(ti_var_t, int) = {
         tokenUnimplemented,               // Scatter
         tokenUnimplemented                // LinReg(ax+b)
 };
+
+#undef EXPRESSION
