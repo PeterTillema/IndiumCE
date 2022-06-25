@@ -1,10 +1,11 @@
 #include "functions.h"
 #include "ast.h"
 #include "evaluate.h"
-#include "utils.h"
+#include "main.h"
 #include "types.h"
+#include "utils.h"
 
-#include <cmath>
+#include <ti/tokens.h>
 
 BaseType *unaryFunction(NODE *firstChild, unsigned int childNo, UnaryFunction *function) {
     if (childNo != 1) argumentsError();
@@ -108,11 +109,12 @@ BaseType *FuncTan::eval(Number &rhs) {
 
 BaseType *FuncRound::eval(Number &rhs) {
     // todo: use a custom routine, as this one sucks!
-    return new Number(roundf(rhs.num * 1e9) / 1e9);
+    // return new Number(roundf_custom(rhs.num * 1e9) / 1e9);
+    return new Number(roundf_custom(rhs.num));
 }
 
 BaseType *FuncRound::eval(Complex &rhs) {
-    return new Complex(roundf(rhs.real * 1e9) / 1e9, roundf(rhs.imag * 1e9) / 1e9);
+    return new Complex(roundf_custom(rhs.real * 1e9) / 1e9, roundf_custom(rhs.imag * 1e9) / 1e9);
 }
 
 BaseType *FuncRound::eval(Matrix &rhs) {

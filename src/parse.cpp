@@ -5,10 +5,11 @@
 #include "operators.h"
 #include "variables.h"
 
-#include <fileioc.h>
-#include <keypadc.h>
 #include <cmath>
 #include <cstring>
+#include <fileioc.h>
+#include <keypadc.h>
+#include <ti/tokens.h>
 
 extern struct NODE *(*parseFunctions[256])(ti_var_t, int);
 

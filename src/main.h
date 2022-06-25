@@ -5,6 +5,8 @@
 #define HOMESCREEN_Y 40
 #define GLYPH_WIDTH 12
 
-bool is_pos_int(float Num);
+bool is_pos_int(float num);
+
+float roundf_custom(float num);
 
 #endif
