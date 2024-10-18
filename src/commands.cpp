@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fontlibc.h>
 #include <tice.h>
+#include <ti/tokens.h>
 
 void commandDisp(struct NODE *node) {
     static char buf[27] = {0};
@@ -110,5 +111,5 @@ void commandDisp(struct NODE *node) {
 void evalCommand(struct NODE *node) {
     unsigned int command = node->data.operand.command;
 
-    if (command == tDisp) commandDisp(node->child);
+    if (command == OS_TOK_DISP) commandDisp(node->child);
 }

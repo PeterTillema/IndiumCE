@@ -23,11 +23,11 @@ int main(int argc, char *argv[]) {
         char *p = argv[1];
 
         // Skip eventually the program byte
-        if (*p == tProg) p++;
+        if (*p == OS_TOK_EXECUTE_PROGRAM) p++;
 
         // Get either the normal or protected program
-        input_slot = ti_OpenVar(p, "r", TI_PRGM_TYPE);
-        if (!input_slot) input_slot = ti_OpenVar(p, "r", TI_PPRGM_TYPE);
+        input_slot = ti_OpenVar(p, "r", OS_TYPE_PRGM);
+        if (!input_slot) input_slot = ti_OpenVar(p, "r", OS_TYPE_PROT_PRGM);
     }
 
     // If no valid entry is found in the arguments, ask one time for user input
@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
         os_GetStringInput((char *) "Program name: ", buf, 8);
 
         // Get either the normal or protected program
-        input_slot = ti_OpenVar(buf, "r", TI_PRGM_TYPE);
-        if (!input_slot) input_slot = ti_OpenVar(buf, "r", TI_PPRGM_TYPE);
+        input_slot = ti_OpenVar(buf, "r", OS_TYPE_PRGM);
+        if (!input_slot) input_slot = ti_OpenVar(buf, "r", OS_TYPE_PROT_PRGM);
     }
 
     // Not found, so error!

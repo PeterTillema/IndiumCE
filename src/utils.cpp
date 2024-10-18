@@ -81,7 +81,18 @@ char *formatNum(float num) {
 }
 
 bool is2ByteTok(int token) {
-    uint8_t All2ByteTokens[9] = {tExtTok, tVarMat, tVarLst, tVarPict, tVarGDB, tVarOut, tVarSys, tVarStrng, t2ByteTok};
+    uint8_t All2ByteTokens[10] = {
+        OS_TOK_MATRIX,
+        OS_TOK_LIST,
+        OS_TOK_EQU,
+        OS_TOK_PIC,
+        OS_TOK_GDB,
+        OS_TOK_STAT,
+        OS_TOK_SYS,
+        OS_TOK_STR,
+        OS_TOK_2BYTE,
+        OS_TOK_2BYTE_EXT
+    };
 
     return memchr(All2ByteTokens, token, sizeof(All2ByteTokens)) != nullptr;
 }
@@ -119,7 +130,7 @@ int tokenPeek() {
 }
 
 bool endOfLine(int token) {
-    return token == EOF || (uint8_t) token == tEnter || (uint8_t) token == tColon;
+    return token == EOF || (uint8_t) token == OS_TOK_NEWLINE || (uint8_t) token == OS_TOK_COLON;
 }
 
 float cosfMode(float num) {

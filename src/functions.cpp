@@ -33,16 +33,16 @@ BaseType *evalFunction(struct NODE *funcNode) {
     if (childNo == 1) {
         UnaryFunction *funcHandle;
         switch (func) {
-            case tRound:
+            case OS_TOK_ROUND:
                 funcHandle = new FuncRound();
                 break;
-            case tSin:
+            case OS_TOK_SIN:
                 funcHandle = new FuncSin();
                 break;
-            case tCos:
+            case OS_TOK_COS:
                 funcHandle = new FuncCos();
                 break;
-            case tTan:
+            case OS_TOK_TAN:
                 funcHandle = new FuncTan();
                 break;
             default:

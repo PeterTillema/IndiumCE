@@ -18,7 +18,7 @@ static uint8_t custom_list_index = 0;
 using tinystl::vector;
 
 static void handle_real(const char *varname, void *data) {
-    if (varname[0] >= tA && varname[0] <= tTheta) {
+    if (varname[0] >= OS_TOK_A && varname[0] <= OS_TOK_THETA) {
         auto real = new var_real();
 
         real->complex = false;
@@ -30,7 +30,7 @@ static void handle_real(const char *varname, void *data) {
 }
 
 static void handle_cplx(const char *varname, void *data) {
-    if (varname[0] >= tA && varname[0] <= tTheta) {
+    if (varname[0] >= OS_TOK_A && varname[0] <= OS_TOK_THETA) {
         auto oldCplx = (cplx_t *) data;
         auto cplx = new var_real();
 
@@ -174,7 +174,7 @@ void get_all_os_variables() {
         varname[name_length] = '\0';
 
         // Skip Ans, we will treat it special afterwards
-        if (varname[0] == tAns) continue;
+        if (varname[0] == OS_TOK_ANS) continue;
 
         // Get a valid handler
         if (var_type >= sizeof(handlers) / sizeof(handlers[0])) continue;

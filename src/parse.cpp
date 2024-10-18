@@ -46,7 +46,7 @@ static void pushOp(uint8_t precedence, int token) {
         // Check if we need to move the previous operator to the output stack
         uint8_t prevPrec = getOpPrecedence(prev->data.operand.op);
         if (prevPrec > precedence ||
-            (prevPrec == precedence && (token == tPower || token == tChs || token == tComma)))
+            (prevPrec == precedence && (token == OS_TOK_POWER || token == OS_TOK_NEGATIVE || token == OS_TOK_COMMA)))
             break;
 
         // Check for unary operator and set the args of the operator
@@ -82,7 +82,7 @@ static void pushRParen(uint8_t tok) {
 
         if (tmp->data.type == ET_FUNCTION_CALL && tmp->data.operand.func == tok) {
             // This is the closing } or ) which is a single function without an extra parenthesis
-            if (argCount <= outputStackNr && (tok == tLBrace || tok == tLBrack)) {
+            if (argCount <= outputStackNr && (tok == OS_TOK_LEFT_BRACE || tok == OS_TOK_LEFT_BRACKET)) {
                 struct NODE *tree = tmp->child = outputStack[outputStackNr - argCount];
 
                 // Set the arguments of the function
@@ -99,7 +99,7 @@ static void pushRParen(uint8_t tok) {
 
                 return;
             } else if (i && argCount <= outputStackNr && opStack[i - 1]->data.type == ET_FUNCTION_CALL &&
-                       opStack[i - 1]->data.operand.func != tLParen) {
+                       opStack[i - 1]->data.operand.func != OS_TOK_LEFT_PAREN) {
                 // This is a real function, like sin or cos. Free the parenthesis, and set all arguments from the
                 // output queue as the children of this function.
                 struct NODE *funcNode = opStack[i - 1];
@@ -130,7 +130,7 @@ static void pushRParen(uint8_t tok) {
             } else {
                 break;
             }
-        } else if (tmp->data.type == ET_OPERATOR && tmp->data.operand.op == tComma) {
+        } else if (tmp->data.type == ET_OPERATOR && tmp->data.operand.op == OS_TOK_COMMA) {
             argCount++;
             opStackNr--;
 
@@ -168,9 +168,9 @@ struct NODE *expressionLine(ti_var_t slot, int token, bool stopAtComma, bool sto
     opStackNr = 0;
     needMulOp = false;
 
-    while (token != EOF && token != tEnter && token != tColon) {
-        if (token == tComma && stopAtComma && !nestedFuncs) break;
-        if (token == tRParen && stopAtParen && !nestedFuncs) break;
+    while (token != EOF && token != OS_TOK_NEWLINE && token != OS_TOK_COLON) {
+        if (token == OS_TOK_COMMA && stopAtComma && !nestedFuncs) break;
+        if (token == OS_TOK_RIGHT_PAREN && stopAtParen && !nestedFuncs) break;
 
         if (kb_On) parseError("[ON]-key pressed");
 
@@ -196,9 +196,9 @@ struct NODE *expressionLine(ti_var_t slot, int token, bool stopAtComma, bool sto
 static void tokenOperator(__attribute__((unused)) ti_var_t slot, int token) {
     needMulOp = false;
 
-    if (token == tStore) {
+    if (token == OS_TOK_STO) {
         // Multiple stores are not implemented
-        if (opStackNr && opStack[0]->data.type == ET_OPERATOR && opStack[0]->data.operand.op == tStore)
+        if (opStackNr && opStack[0]->data.type == ET_OPERATOR && opStack[0]->data.operand.op == OS_TOK_STO)
             parseError("Syntax error");
 
         emptyOpStack();
@@ -220,12 +220,12 @@ static void tokenRBrack(ti_var_t slot, int token) {
     needMulOp = true;
 
     pushOp(MAX_PRECEDENCE + 1, token);
-    pushRParen(tLBrack);
+    pushRParen(OS_TOK_LEFT_BRACKET);
 
     // Check if a "[" is coming, in which case we need an extra comma
     token = tokenPeek();
-    if ((uint8_t) token == tLBrack) {
-        tokenOperator(slot, tComma);
+    if ((uint8_t) token == OS_TOK_LEFT_BRACKET) {
+        tokenOperator(slot, OS_TOK_COMMA);
     }
 }
 
@@ -233,7 +233,7 @@ static void tokenRBrace(__attribute__((unused)) ti_var_t slot, __attribute__((un
     needMulOp = true;
 
     pushOp(MAX_PRECEDENCE + 1, token);
-    pushRParen(tLBrace);
+    pushRParen(OS_TOK_LEFT_BRACE);
 }
 
 static void tokenRParen(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
@@ -242,11 +242,11 @@ static void tokenRParen(__attribute__((unused)) ti_var_t slot, __attribute__((un
     // This forces all operators to be moved to the output stack
     // After that, push the right parenthesis
     pushOp(MAX_PRECEDENCE + 1, token);
-    pushRParen(tLParen);
+    pushRParen(OS_TOK_LEFT_PAREN);
 }
 
 static void tokenFunction(ti_var_t slot, int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
 
     // Allocate space for the function
     auto node = new NODE();
@@ -256,11 +256,11 @@ static void tokenFunction(ti_var_t slot, int token) {
     addToStack(node);
     nestedFuncs++;
 
-    if (token != tLParen && token != tLBrace && token != tLBrack) {
+    if (token != OS_TOK_LEFT_PAREN && token != OS_TOK_LEFT_BRACE && token != OS_TOK_LEFT_BRACKET) {
         // Eventually push an extra (
         auto parenNode = new NODE();
         parenNode->data.type = ET_FUNCTION_CALL;
-        parenNode->data.operand.func = tLParen;
+        parenNode->data.operand.func = OS_TOK_LEFT_PAREN;
 
         addToStack(parenNode);
     }
@@ -276,54 +276,54 @@ static void tokenNumber(ti_var_t slot, int token) {
     uint8_t expNum = 0;
     uint8_t tok = token;
 
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     // Set some booleans
-    if (tok == tee) {
+    if (tok == OS_TOK_EXP_10) {
         num = 1;
         expNum = 1;
         inExp = true;
-    } else if (tok == tDecPt) {
+    } else if (tok == OS_TOK_DECIMAL_POINT) {
         fracNum++;
     } else {
-        num = (float) tok - t0;
+        num = (float) tok - OS_TOK_0;
     }
 
     while ((token = tokenNext(slot)) != EOF) {
         tok = token;
 
         // Should be a valid num char
-        if (!(tok == tee || tok == tDecPt || tok == tii || tok == tChs || (tok >= t0 && tok <= t9))) break;
+        if (!(tok == OS_TOK_EXP_10 || tok == OS_TOK_DECIMAL_POINT || tok == OS_TOK_IMAGINARY || tok == OS_TOK_NEGATIVE || (tok >= OS_TOK_0 && tok <= OS_TOK_9))) break;
 
-        if (tok == tee) {
+        if (tok == OS_TOK_EXP_10) {
             if (inExp) parseError("Syntax error");
 
             inExp = true;
-        } else if (tok == tDecPt) {
+        } else if (tok == OS_TOK_DECIMAL_POINT) {
             if (fracNum || inExp) parseError("Syntax error");
 
             fracNum = -1;
-        } else if (tok == tii) {
+        } else if (tok == OS_TOK_IMAGINARY) {
             isComplex = true;
 
             break;
-        } else if (tok == tChs) {
+        } else if (tok == OS_TOK_NEGATIVE) {
             if (!inExp || expNum != 1) parseError("Syntax error");
 
             negativeExp = true;
         } else if (inExp) {
-            exp = exp * 10 + tok - t0;
+            exp = exp * 10 + tok - OS_TOK_0;
             expNum++;
         } else if (fracNum) {
-            num += powf(10, (float) fracNum) * (float) (tok - t0);
+            num += powf(10, (float) fracNum) * (float) (tok - OS_TOK_0);
             fracNum--;
         } else {
-            num = num * 10 + (float) (tok - t0);
+            num = num * 10 + (float) (tok - OS_TOK_0);
         }
     }
 
-    if (token != tii) seekPrev(slot);
+    if (token != OS_TOK_IMAGINARY) seekPrev(slot);
 
     // Get the right number, based on the exponent and negative flag
     if (negativeExp) exp = -exp;
@@ -345,23 +345,23 @@ static void tokenNumber(ti_var_t slot, int token) {
 }
 
 static void tokenVariable(__attribute__((unused)) ti_var_t slot, int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     auto node = new NODE();
     node->data.type = ET_VARIABLE;
-    node->data.operand.variableNr = token - tA;
+    node->data.operand.variableNr = token - OS_TOK_A;
 
     addToOutput(node);
 }
 
 static void tokenOSList(ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
 
     uint8_t listNr = tokenNext(slot);
 
     // Check if it's a list element
-    if (tokenPeek() == tLParen) {
+    if (tokenPeek() == OS_TOK_LEFT_PAREN) {
         tokenNext(slot);
         tokenFunction(slot, 0x5D + (listNr << 8));
     } else {
@@ -375,12 +375,12 @@ static void tokenOSList(ti_var_t slot, __attribute__((unused)) int token) {
 }
 
 static void tokenOSMatrix(ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
 
     uint8_t matrixNr = tokenNext(slot);
 
     // Check if it's a matrix element
-    if (tokenPeek() == tLParen) {
+    if (tokenPeek() == OS_TOK_LEFT_PAREN) {
         tokenNext(slot);
         tokenFunction(slot, 0x5C + (matrixNr << 8));
     } else {
@@ -394,7 +394,7 @@ static void tokenOSMatrix(ti_var_t slot, __attribute__((unused)) int token) {
 }
 
 static void tokenOsString(ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     uint8_t strNr = tokenNext(slot);
@@ -407,7 +407,7 @@ static void tokenOsString(ti_var_t slot, __attribute__((unused)) int token) {
 }
 
 static void tokenOsEqu(ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     uint8_t equNr = tokenNext(slot);
@@ -424,7 +424,7 @@ static void tokenOsEqu(ti_var_t slot, __attribute__((unused)) int token) {
 }
 
 static void tokenString(ti_var_t slot, int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
 
     uint8_t *startPtr = (uint8_t *) ti_GetDataPtr(slot) + 1;
     unsigned int length = 0;
@@ -437,9 +437,9 @@ static void tokenString(ti_var_t slot, int token) {
             tokenNext(slot);
             length++;
         }
-    } while (token != EOF && (uint8_t) token != tEnter && (uint8_t) token != tStore && (uint8_t) token != tString);
+    } while (token != EOF && (uint8_t) token != OS_TOK_NEWLINE && (uint8_t) token != OS_TOK_STO && (uint8_t) token != OS_TOK_DOUBLE_QUOTE);
 
-    if ((uint8_t) token == tEnter || (uint8_t) token == tStore) {
+    if ((uint8_t) token == OS_TOK_NEWLINE || (uint8_t) token == OS_TOK_STO) {
         seekPrev(slot);
     } else {
         needMulOp = true;
@@ -453,14 +453,14 @@ static void tokenString(ti_var_t slot, int token) {
 
     auto node = new NODE();
     node->data.type = ET_FUNCTION_CALL;
-    node->data.operand.func = tString;
+    node->data.operand.func = OS_TOK_DOUBLE_QUOTE;
     node->child = (struct NODE *) stringMemory;
 
     addToOutput(node);
 }
 
 static void tokenEmptyFunc(__attribute__((unused)) ti_var_t slot, int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     auto node = new NODE();
@@ -471,7 +471,7 @@ static void tokenEmptyFunc(__attribute__((unused)) ti_var_t slot, int token) {
 }
 
 static void tokenPi(__attribute__((unused)) ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
     needMulOp = true;
 
     auto node = new NODE();
@@ -482,16 +482,16 @@ static void tokenPi(__attribute__((unused)) ti_var_t slot, __attribute__((unused
 }
 
 static void tokenRand(ti_var_t slot, __attribute__((unused)) int token) {
-    if (needMulOp) tokenOperator(slot, tMul);
+    if (needMulOp) tokenOperator(slot, OS_TOK_MULTIPLY);
 
     // Check if it's a matrix element
-    if (tokenPeek() == tLParen) {
+    if (tokenPeek() == OS_TOK_LEFT_PAREN) {
         tokenNext(slot);
-        tokenFunction(slot, tRand);
+        tokenFunction(slot, OS_TOK_RAND);
     } else {
         auto node = new NODE();
         node->data.type = ET_FUNCTION_CALL;
-        node->data.operand.func = tRand;
+        node->data.operand.func = OS_TOK_RAND;
 
         addToOutput(node);
         needMulOp = true;
@@ -514,12 +514,12 @@ struct NODE *parseProgram(ti_var_t slot, bool expectEnd, bool expectElse) {
         if (kb_On) parseError("[ON]-key pressed");
 
         // Skip if's a colon
-        if (token == tColon) {
+        if (token == OS_TOK_COLON) {
             continue;
         }
 
         // Return if we hit an Else/End, but only if it's valid!
-        if ((token == tEnd && expectEnd) || (token == tElse && expectElse))
+        if ((token == OS_TOK_END && expectEnd) || (token == OS_TOK_ELSE && expectElse))
             return root;
 
         auto func = parseFunctions[token];
@@ -592,7 +592,7 @@ static struct NODE *tokenCommand(ti_var_t slot, int token, bool endParen) {
             break;
         }
 
-        if (endParen && token == tRParen) {
+        if (endParen && token == OS_TOK_RIGHT_PAREN) {
             if (!endOfLine(tokenPeek())) parseError("Syntax error");
 
             break;

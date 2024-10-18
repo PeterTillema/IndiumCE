@@ -14,18 +14,18 @@
 // moved properly to the output. It is also "right-associative", which means that if the top stack entry is also a
 // comma, it won't be moved (which is clearly not what we want)
 static const uint8_t operators[] = {
-        tFromRad, tFromDeg, tRecip, tSqr, tTrnspos, tCube,
-        tPower,
-        tFact,
-        tChs,
-        tnPr, tnCr,
-        tMul, tDiv,
-        tAdd, tSub,
-        tEQ, tLT, tGT, tLE, tGE, tNE,
-        tAnd,
-        tOr, tXor,
-        tStore,
-        tComma
+        OS_TOK_FROM_RAD, OS_TOK_FROM_DEG, OS_TOK_RECIPROCAL, OS_TOK_SQRT, OS_TOK_TRANSPOSE, OS_TOK_CUBE,
+        OS_TOK_POWER,
+        OS_TOK_EXCLAIM,
+        OS_TOK_NEGATIVE,
+        OS_TOK_NPR, OS_TOK_NCR,
+        OS_TOK_MULTIPLY, OS_TOK_DIVIDE,
+        OS_TOK_ADD, OS_TOK_SUBTRACT,
+        OS_TOK_EQUAL, OS_TOK_LESS_THAN, OS_TOK_GREATER_THAN, OS_TOK_LESS_THAN_EQUAL, OS_TOK_GREATER_THAN_EQUAL, OS_TOK_NOT_EQUAL,
+        OS_TOK_AND,
+        OS_TOK_OR, OS_TOK_XOR,
+        OS_TOK_STO,
+        OS_TOK_COMMA
 };
 static const uint8_t precedence[] = {
         1, 1, 1, 1, 1, 1,
@@ -61,28 +61,28 @@ BaseType *evalOperator(struct NODE *node) {
         UnaryOperator *opNew;
 
         switch (op) {
-            case tFromRad:
+            case OS_TOK_FROM_RAD:
                 opNew = new OpFromRad();
                 break;
-            case tFromDeg:
+            case OS_TOK_FROM_DEG:
                 opNew = new OpFromDeg();
                 break;
-            case tRecip:
+            case OS_TOK_RECIPROCAL:
                 opNew = new OpRecip();
                 break;
-            case tSqr:
+            case OS_TOK_SQRT:
                 opNew = new OpSqr();
                 break;
-            case tTrnspos:
+            case OS_TOK_TRANSPOSE:
                 opNew = new OpTrnspos();
                 break;
-            case tCube:
+            case OS_TOK_CUBE:
                 opNew = new OpCube();
                 break;
-            case tFact:
+            case OS_TOK_EXCLAIM:
                 opNew = new OpFact();
                 break;
-            case tChs:
+            case OS_TOK_NEGATIVE:
                 opNew = new OpChs();
                 break;
             default:
@@ -96,52 +96,52 @@ BaseType *evalOperator(struct NODE *node) {
         BaseType *rightNode;
         BinaryOperator *opNew;
 
-        if (op == tStore) {
+        if (op == OS_TOK_STO) {
             typeError();
         } else {
             rightNode = evalNode(node->child->next);
 
             switch (op) {
-                case tPower:
+                case OS_TOK_POWER:
                     opNew = new OpPower();
                     break;
-                case tMul:
+                case OS_TOK_MULTIPLY:
                     opNew = new OpMul();
                     break;
-                case tDiv:
+                case OS_TOK_DIVIDE:
                     opNew = new OpDiv();
                     break;
-                case tAdd:
+                case OS_TOK_ADD:
                     opNew = new OpAdd();
                     break;
-                case tSub:
+                case OS_TOK_SUBTRACT:
                     opNew = new OpSub();
                     break;
-                case tEQ:
+                case OS_TOK_EQUAL:
                     opNew = new OpEQ();
                     break;
-                case tLT:
+                case OS_TOK_LESS_THAN:
                     opNew = new OpLT();
                     break;
-                case tGT:
+                case OS_TOK_GREATER_THAN:
                     opNew = new OpGT();
                     break;
-                case tLE:
+                case OS_TOK_LESS_THAN_EQUAL:
                     opNew = new OpLE();
                     break;
-                case tGE:
+                case OS_TOK_GREATER_THAN_EQUAL:
                     opNew = new OpGE();
                     break;
-                case tNE:
+                case OS_TOK_NOT_EQUAL:
                     opNew = new OpNE();
                     break;
-                case tAnd:
+                case OS_TOK_AND:
                     opNew = new OpAnd();
                     break;
-                case tOr:
+                case OS_TOK_OR:
                     opNew = new OpOr();
                     break;
-                case tXor:
+                case OS_TOK_XOR:
                     opNew = new OpXor();
                     break;
                 default:
